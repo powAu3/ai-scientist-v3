@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run an AI Scientist experiment in Harbor
+# Run an AI Scientist review-backed paper task in Harbor
 #
 # Usage: ./run.sh <ideas/idea_*.json> [OPTIONS]
 #
@@ -80,6 +80,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--help)
             echo "Usage: ./run.sh <idea.json> [OPTIONS]"
+            echo "Runs a review-backed paper task: no experiment execution, with predicted results clearly labeled."
             echo ""
             echo "Arguments:"
             echo "  idea.json                  Path to research idea JSON file"
@@ -87,7 +88,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --agent TYPE               Agent: claude-code (default), gemini-cli, or codex"
             echo "  --model MODEL              LLM model (auto-selected per agent if omitted)"
-            echo "  --timeout SECS             Agent timeout in seconds (default: 7200)"
+            echo "  --timeout SECS             Agent timeout in seconds (default: 14400)"
             echo "  --resume-from JOB_PATH     Resume from a previous run's artifacts"
             echo "  --env ENV                  Environment: docker (default) or modal"
             echo "  --gpus N                   Number of GPUs (default: 0, works with local Docker and Modal)"
@@ -484,7 +485,7 @@ if [[ "$GPUS" != "0" ]]; then
     HARBOR_ARGS+=(--override-gpus "$GPUS")
 fi
 
-echo "Starting Harbor run..."
+echo "Starting Harbor review-backed paper run..."
 echo "  Idea:    $IDEA_JSON"
 echo "  Model:   $MODEL"
 echo "  Timeout: ${TIMEOUT}s"

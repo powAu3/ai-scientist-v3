@@ -1,6 +1,8 @@
 # AI Scientist v3
 
-Autonomous AI research agent. No Python orchestration — the agent IS the scientist.
+Autonomous AI research agent. This fork is configured for low-compute machines:
+the agent still writes a complete paper, but it replaces experiment execution with
+a rigorous experiment-rationality review and clearly labeled predicted results.
 
 ## The Bitter Lesson Applied
 
@@ -33,15 +35,15 @@ Three ways to use AI Scientist v3, from simplest to most production-ready:
 ```bash
 cd ai-scientist-v3
 claude
-> Read ideas/idea_tabulartransformer.json and conduct this research
+> Read ideas/idea_tabulartransformer.json and conduct this research without running experiments. Write the paper, review the experimental plan, and include clearly labeled predicted results.
 ```
 
-The `/search-papers` skill and `scripts/submit_for_review.sh` work against the local filesystem. No isolation — artifacts write directly to the repo directory. Good for exploring ideas or developing experiments before committing to a full run.
+The `/search-papers` skill and `scripts/submit_for_review.sh` work against the local filesystem. No isolation — artifacts write directly to the repo directory. Good for drafting a paper and checking whether the proposed experiments are worth running later.
 
 ### Harbor Mode (Isolated Docker)
 
 ```bash
-./run.sh ideas/idea_tabulartransformer.json                                                # Default: Claude Opus 4.6, 2hr timeout
+./run.sh ideas/idea_tabulartransformer.json                                                # Review-backed paper, no experiment execution
 ./run.sh ideas/idea_tabulartransformer.json --model anthropic/claude-sonnet-4-5-20250929   # Use Sonnet
 ./run.sh ideas/idea_tabulartransformer.json --agent gemini-cli                             # Use Gemini CLI
 ./run.sh ideas/idea_tabulartransformer.json --agent gemini-cli --model google/gemini-3.1-pro-preview  # Gemini + custom model
@@ -51,7 +53,7 @@ The `/search-papers` skill and `scripts/submit_for_review.sh` work against the l
 ./run.sh ideas/idea_tabulartransformer.json --env modal --gpus 1 --artifact-sync-interval 120
 ```
 
-Each run is fully isolated in a Docker container. Results are collected in `jobs/{idea}_{timestamp}/` on the host. Monitor runs with the [viewer](#viewing-job-results).
+Each run is fully isolated in a Docker container. Artifacts are collected in `jobs/{idea}_{timestamp}/` on the host, including `experiment_review.md`, `paper.tex`, and `paper.pdf`. Monitor runs with the [viewer](#viewing-job-results).
 
 ### Agent Selection
 
@@ -95,7 +97,7 @@ ai_scientist_v3/
 │           ├── SKILL.md
 │           └── reference.md               # Full API endpoint reference
 ├── harbor-task/
-│   ├── instruction.md.template             # Research prompt ({{IDEA_CONTENT}} placeholder)
+│   ├── instruction.md.template             # Review-backed paper prompt ({{IDEA_CONTENT}} placeholder)
 │   ├── task.toml                           # Container config (CPU, memory, timeout)
 │   ├── environment/
 │   │   ├── Dockerfile.cpu                  # python:3.12-slim + LaTeX + scikit-learn + Claude/Codex/Gemini CLIs
@@ -114,13 +116,14 @@ ai_scientist_v3/
 
 ## Harbor Runtime
 
-Each experiment runs in an isolated Docker container via Harbor:
+Each review-backed paper run executes in an isolated Docker container via Harbor:
 
 1. `run.sh <idea.json>` generates `instruction.md` from the `.template` with the idea injected
 2. Harbor builds a Docker image from `Dockerfile.cpu` (slim) or `Dockerfile.gpu` (CUDA + PyTorch)
 3. The agent (Claude Code or Gemini CLI) runs inside the container at `/app/`
-4. On completion, `harbor-task/tests/test.sh` verifies all artifacts were produced
-5. Results are collected in `jobs/<job-id>/` on the host
+4. The agent writes `experiment_review.md`, fills `latex/template.tex`, and compiles `latex/template.pdf`
+5. On completion, `harbor-task/tests/test.sh` verifies the review and paper artifacts
+6. Artifacts are collected in `jobs/<job-id>/` on the host
 
 Source templates are never modified — `run.sh` generates `instruction.md` and `Dockerfile` at runtime and cleans them up on exit.
 
@@ -263,14 +266,14 @@ You can also use Harbor's built-in viewer: `harbor view jobs`.
 The agent receives a research idea and autonomously:
 
 1. Uses `/search-papers` to find related work (Semantic Scholar, OpenReview, CrossRef)
-2. Writes experiment code and runs it
-3. Debugs failures, iterates on approach
-4. Tests on multiple datasets with error bars
-5. Runs ablation studies
-6. Generates publication-quality plots
-7. Writes a complete paper using the LaTeX template
-8. Submits for review via `scripts/submit_for_review.sh` — single subagent, 3-reviewer ensemble, or external API (creates versioned snapshot)
-9. Reads reviewer questions, iterates on experiments and paper, resubmits
+2. Reviews whether the proposed experiments can answer the hypothesis
+3. Checks baselines, controls, datasets, metrics, leakage risks, feasibility, and threats to validity
+4. Predicts likely outcomes from the proposal and literature, clearly labeling them as predicted rather than measured
+5. Writes `experiment_review.md` with the design review and recommended changes
+6. Writes a complete paper using the LaTeX template
+7. Compiles the paper to `latex/template.pdf`
+8. Optionally submits for paper-quality review via `scripts/submit_for_review.sh`
+9. Iterates on the paper, review findings, and predicted-results framing
 
 No hardcoded stages. No tree data structure. No Python orchestration. The agent decides what to do and when, using its own scientific judgment.
 

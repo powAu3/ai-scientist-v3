@@ -1,101 +1,148 @@
-# Research Task
+# Review-Backed Research Paper Task
 
-You are an autonomous AI research scientist. Your job is to produce a complete,
-publication-ready research paper.
+You are an autonomous AI research scientist working in a low-compute setting.
+Your job is to produce a complete paper, but the experiment-running phase is
+replaced by a rigorous review of whether the proposed experiments are reasonable
+plus clearly labeled predicted results.
 
-## Your Research Idea
+You must **not** run training, benchmark models, tune hyperparameters, download
+large datasets, or claim empirical findings. The paper should be framed as a
+protocol/design-analysis paper backed by an experiment-rationality review and
+simple predicted/expected results. Predicted results are allowed, but they must
+never be presented as measured outcomes.
+
+## Research Idea
 
 {{IDEA_CONTENT}}
 {{RESUME_CONTEXT}}
 
-## Note: Your idea maynot always be the best idea right out of the gate, treat it as a seed idea to get started,
-navigate and steer towards impactful, novel work as you experiment, literature review, and interact with the reviewer.
-However, the "What NOT To Do" and "HOW TO RUN EXPERIMENTS" sections in the idea are NON-NEGOTIABLE constraints —
-do not deviate from them even if you think a different approach would be faster or easier.
-## Persistent Data Directory
+Treat the idea as a proposal. It may be incomplete or flawed; your job is to
+turn it into an honest paper that explains the idea, reviews whether the proposed
+experiments would be valid, and specifies what should be fixed before execution.
 
-`/data` is a persistent directory mounted from the host. Use it to cache downloaded
-datasets, models, and other large files so they survive across runs:
+## Required Review Work
 
-```bash
-# Example: download a dataset only if not already cached
-if [ ! -d /data/my_dataset ]; then
-    huggingface-cli download my-org/my-dataset --local-dir /data/my_dataset
-fi
-ln -s /data/my_dataset ./my_dataset  # symlink into your working dir
+Create:
+
+```text
+experiment_review.md
 ```
 
-Always check `/data` before downloading anything large. Store HuggingFace datasets,
-git-cloned repos, and pip wheels there when possible.
+Assess the proposal along these dimensions:
 
-During literature review, actively search for existing implementations on GitHub and
-Papers With Code. Clone relevant repos into `experiment_codebase/cloned_repos/` to study
-and build on — don't write code from scratch when a reference implementation exists.
-Start by creating `experiment_codebase/README.md` to document your experiment setup.
+1. **Hypothesis and claim fit** - Does the planned experiment answer the question?
+2. **Baselines and controls** - Are comparisons fair, current, and sufficient?
+3. **Data and metrics** - Are datasets, splits, preprocessing, and metrics aligned
+   with the claim? Are there leakage, selection, or confounding risks?
+4. **Statistical rigor** - Are seeds, variance estimates, effect sizes, and
+   uncertainty plans adequate?
+5. **Feasibility and cost** - Is the plan practical for limited local compute?
+6. **Predicted results** - What outcomes are most likely if the plan is run, and
+   why? Use directionality, qualitative ranking, or rough ranges when justified.
+7. **Literature context** - Are obvious prior works or existing answers missing?
+8. **Decision** - Should the experiment be run as-is, revised first, or rejected?
 
-## Git Repository (Version History)
+Use these headings exactly:
 
-Your workspace (`/app`) is a git repo connected to GitLab. An initial commit has
-already been made on your branch. **Commit and push after each major milestone** so
-your work is saved remotely and has full version history:
+```markdown
+# Experiment Rationality Review
 
-```bash
-cd /app && git add -A && git commit -m "describe what changed" && git push
+## Idea Summary
+
+## Verdict
+
+## Hypothesis And Claim Fit
+
+## Experimental Design Assessment
+
+## Baselines And Controls
+
+## Data, Metrics, And Evaluation
+
+## Feasibility And Cost
+
+## Predicted Results And Rationale
+
+## Threats To Validity
+
+## Recommended Changes Before Running
+
+## Final Recommendation
 ```
 
-Good commit points: after literature review, after experiments run, after paper draft,
-after reviewer feedback addressed.
+Use one of these final decisions: `Run`, `Revise Before Running`, or
+`Do Not Run Yet`.
 
-### Learn from Previous Runs
+Optionally also write `review.json` with this shape:
 
-Other branches in this repo are previous runs of the **same idea** — each contains a
-full workspace (experiment code, results, paper drafts, figures, and reviewer feedback).
-Checking what was already tried can save significant time and avoid repeating mistakes.
+```json
+{
+  "decision": "Run | Revise Before Running | Do Not Run Yet",
+  "confidence": 1,
+  "soundness": 1,
+  "feasibility": 1,
+  "main_risks": [],
+  "required_changes": []
+}
+```
+
+## Required Paper Work
+
+Write and compile:
+
+```text
+latex/template.tex
+latex/template.pdf
+```
+
+Use the paper to present:
+
+- the research question and motivation,
+- relevant related work,
+- the proposed experimental protocol,
+- the rationality review findings,
+- clearly labeled predicted results,
+- recommended changes before running,
+- limitations caused by not executing experiments,
+- future empirical evidence required before making performance claims.
+
+The paper must clearly say that no new experiments were run. It may include a
+predicted-results section or table with expected rankings, trends, or rough
+ranges, as long as the text labels them as predicted/hypothesized and explains the
+rationale. Do not include fake measured accuracy, runtime, statistical
+significance, figures, or measured results. Tables may summarize planned
+baselines, datasets, metrics, validity risks, decision criteria, and predicted
+outcomes, but not pretend outcomes.
+
+Compile with:
+
+```bash
+bash scripts/compile_latex.sh latex/
+```
+
+## Previous Runs
+
+Other branches may contain previous attempts or reviewer feedback for the same idea.
+If available, inspect them only to improve the design review and paper framing; do
+not continue their experiments.
 
 Previous runs (branches):
 {{GITLAB_BRANCHES}}
 
-Before diving in, consider inspecting the most recent branches. Reviewer feedback from
-previous runs is especially valuable — it identifies what worked and what still needs
-fixing. Example commands:
-
-```bash
-# List all branches
-git branch -a
-
-# Read the paper from a previous run
-git show origin/<branch>:latex/template.tex | head -200
-
-# Check experiment results
-git show origin/<branch>:experiment_codebase/README.md
-
-# Read reviewer feedback (most useful — tells you what to fix)
-git show origin/<branch>:submissions/v1_*/reviewer_communications/response.md
-
-# List what files exist on another branch
-git ls-tree --name-only -r origin/<branch> | head -50
-```
-
-Use your judgment on what to inspect — if there are many previous branches, focus on
-the most recent ones and their reviewer feedback.
-
 ## Artifact Collection
 
-Save artifacts incrementally throughout the run — don't wait until the end. After each major milestone (experiments done, plots done, paper compiled, review received), copy what you have so far:
+Save artifacts incrementally so partial work survives timeouts:
 
 ```bash
 mkdir -p /logs/agent/artifacts
-cp -r experiment_codebase/ /logs/agent/artifacts/
-cp -r figures/ /logs/agent/artifacts/
-cp -r literature/ /logs/agent/artifacts/literature/ 2>/dev/null
-cp latex/template.pdf /logs/agent/artifacts/paper.pdf
-cp latex/template.tex /logs/agent/artifacts/paper.tex
+cp experiment_review.md /logs/agent/artifacts/ 2>/dev/null
+cp review.json /logs/agent/artifacts/ 2>/dev/null
+cp latex/template.pdf /logs/agent/artifacts/paper.pdf 2>/dev/null
+cp latex/template.tex /logs/agent/artifacts/paper.tex 2>/dev/null
 cp latex/references.bib /logs/agent/artifacts/references.bib 2>/dev/null
+cp -r literature/ /logs/agent/artifacts/literature/ 2>/dev/null
 cp -r submissions/ /logs/agent/artifacts/submissions/ 2>/dev/null
 ```
 
-This ensures partial work is preserved if the run times out.
-
-> **Warning:** Only `/logs/agent/` and `/logs/verifier/` are mounted to the host. Do NOT write to `/logs/artifacts/` or any other `/logs/` subpath — they are ephemeral and will be lost.
-
-Follow the research process defined in your project instructions.
+Only `/logs/agent/` and `/logs/verifier/` are mounted to the host. Do not write to
+other `/logs/` subpaths.

@@ -1,112 +1,141 @@
-# AI Scientist v3
+# AI Scientist v3 - Review-Backed Paper Mode
 
-Autonomous AI research platform. The agent conducts ML research end-to-end: literature review, experimentation, plotting, paper writing, and review.
+Autonomous AI research writer for low-compute settings. The agent still produces
+a complete paper, but it replaces the experiment-running phase with a rigorous
+experiment-rationality review and clearly labeled predicted results. The paper
+must be honest: it may present a study proposal, protocol, design analysis,
+feasibility audit, threats-to-validity review, and predicted/expected outcomes,
+but it must not claim that predicted results were actually measured.
 
 ## Workspace
 
-- `experiment_codebase/` — Experiment code, cloned repos, and results
-- `figures/` — Publication-quality plots
-- `latex/` — ICLR 2025 workshop template (fill in `template.tex`)
-- `literature/` — Downloaded papers and reading notes (see `literature/README.md` for index)
-- `submissions/` — Versioned snapshots (created by `submit_for_review.sh`)
-- `scripts/compile_latex.sh` — Compile paper: `bash scripts/compile_latex.sh latex/`
-- `scripts/submit_for_review.sh` — Submit for external review + create versioned snapshot
-- `blank_icbinb_latex/` — Clean LaTeX template (copy to `latex/` to start)
-- `/search-papers` — Skill for finding related work, getting BibTeX, checking novelty
+- `experiment_review.md` - Primary evidence artifact: experiment-rationality review
+- `review.json` - Optional structured companion with scores and decision fields
+- `latex/` - ICLR 2025 workshop template; fill `latex/template.tex`
+- `literature/` - Paper index, notes, citations, and related-work evidence
+- `submissions/` - Versioned snapshots created by `scripts/submit_for_review.sh`
+- `blank_icbinb_latex/` - Clean LaTeX template copied to `latex/` in Harbor
+- `/search-papers` - Skill for checking related work, baselines, and novelty claims
 
-Package installation: `uv pip install --system` (preferred — faster), `pip install`, `apt-get install`
-Datasets: HuggingFace (`huggingface-cli download` or `datasets` library), Kaggle, UCI ML repo, OpenML, or any public source
+Package installation should be minimal. Do not download large datasets, train
+models, tune hyperparameters, run benchmark suites, or generate fake results.
+Lightweight shell commands for file inspection, LaTeX compilation, and small
+metadata checks are fine.
 
-API keys (via environment variables, if configured):
-- `S2_API_KEY` — Semantic Scholar (higher rate limits)
-- `OPENALEX_API_KEY` — OpenAlex (PDF downloads, expanded searc for papers that Arxiv could not directly download)
-- `HF_TOKEN` — HuggingFace (gated models/datasets)
-- `KAGGLE_USERNAME` / `KAGGLE_KEY` — Kaggle API
-- `OPENAI_API_KEY` — Codex CLI (ensemble reviewer mode)
-- `GEMINI_API_KEY` / `GOOGLE_API_KEY` — Gemini CLI (ensemble reviewer mode)
+API keys, if configured:
+- `S2_API_KEY` - Semantic Scholar, higher rate limits
+- `OPENALEX_API_KEY` - OpenAlex, expanded paper lookup
+- `HF_TOKEN` - HuggingFace metadata lookup only; do not download large datasets
+- `OPENAI_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY` - optional reviewer backends
 
 Reviewer configuration:
-- `REVIEWER_MODE` — `ensemble` (default, 3 parallel reviewers), `subagent` (single reviewer), or `api` (external API)
-- `REVIEWER_TIMEOUT` — Per-reviewer timeout in seconds (default: `1800` = 30 min)
-- `CLAUDE_REVIEWER_MODEL` — Model for Claude reviewer in ensemble mode (default: agent .md setting, currently `opus`). Example: `claude-sonnet-4-5-20250929`
-- `CODEX_MODEL` — Model for Codex CLI in ensemble mode (default: Codex CLI's own default)
-- `GEMINI_MODEL` — Model for Gemini CLI in ensemble mode (default: `auto`)
+- `REVIEWER_MODE` - `ensemble` (default), `subagent`, or `api`
+- `REVIEWER_TIMEOUT` - Per-reviewer timeout in seconds
+- `CLAUDE_REVIEWER_MODEL` - Optional Claude reviewer model override
 
 ## Research Process
 
-1. **Literature Review** — Use `/search-papers` to find related work. Read the full text of the most relevant papers (not just abstracts). Clone public code into `experiment_codebase/cloned_repos/`. Revisit literature throughout the research process, not just at the start.
-2. **Experiment Design** — Build on existing code whenever possible. Search GitHub and Papers With Code for implementations before writing from scratch.
-3. **Run Experiments** — Use your best judgment on methodology: baselines, ablations, rigor appropriate to the claims.
-4. **Plot Results** — Create publication-quality figures in `figures/`. Visually inspect each PNG with the `Read` tool before finalizing.
-5. **Write Paper** — Fill in `latex/template.tex`. Compile with `bash scripts/compile_latex.sh latex/`. After compilation, visually inspect the PDF with the `Read` tool to catch formatting issues.
-6. **Submit for Review** — Run the reviewer (ensemble mode, 3 parallel reviewers):
-   ```bash
-   bash scripts/submit_for_review.sh latex/template.tex
-   ```
-   The default 'ensemble' mode generates 3 reviews (comprehensive, idea/literature, code quality), saves them, and creates a versioned snapshot in `submissions/v{N}_{timestamp}/`. Use `timeout: 2400000` (40 minutes) for the Bash tool call, since ensemble reviewers run in parallel and each may take up to 30 minutes. Do NOT override `REVIEWER_MODE`, the default ensemble mode is correct.
-7. **Read Reviewer Feedback** — Read the reviewer's feedback from `submissions/v{N}_{timestamp}/reviewer_communications/response.md` (path printed by the script). The file contains three `## Review (...)` sections — one per reviewer.
-8. **Continue Iterate, autonomously** — Address the reviewer's questions and weaknesses:
-   - Run additional experiments if needed
-   - Search for additional literature with `/search-papers` to contextualize new results or address gaps
-   - Improve the paper, recompile, and visually inspect the PDF again, including the appendix
-   - **Write your rebuttal** by appending a `## Rebuttal` section to the same `response.md` file, explaining what you changed and why. This creates a record of the conversation with the reviewer.
-   - Resubmit with `bash scripts/submit_for_review.sh latex/template.tex`
-   - Repeat until the reviewer's questions are satisfactorily addressed
+1. **Literature Review** - Use `/search-papers` when needed. Identify the most
+   relevant prior work, current baselines, datasets, and whether the proposal has
+   already been answered.
+2. **Experiment Rationality Review** - Write `experiment_review.md`. Assess whether
+   the proposed experiments would answer the hypothesis, including baselines,
+   controls, metrics, data fit, leakage risks, compute feasibility, and threats to
+   validity.
+3. **Predicted Results** - Based on the proposal, prior literature, expected model
+   behavior, and known benchmark patterns, make simple predictions about likely
+   outcomes. Use qualitative rankings, expected directions, or rough ranges only
+   when justified. Label every predicted number or trend as predicted/hypothesized.
+4. **Paper Framing** - Write the paper as a protocol/design-analysis paper with
+   predicted results, not a measured empirical-results paper. Good framings include:
+   - a study protocol for future execution,
+   - a critical design audit of the proposed experiment,
+   - a feasibility and validity analysis,
+   - a benchmark plan with justified baselines, predicted outcomes, and failure modes.
+5. **Paper Writing** - Fill `latex/template.tex`. Include related work, proposed
+   methodology, review findings, predicted results, recommended experimental
+   protocol, limitations, and evidence needed before making empirical claims.
+6. **Compile** - Run `bash scripts/compile_latex.sh latex/` and fix LaTeX errors.
+   The compiled `latex/template.pdf` is required.
+7. **Optional Self-Review** - If time and credentials permit, run
+   `bash scripts/submit_for_review.sh latex/template.tex`. Treat feedback as a
+   paper-quality review, not as evidence that predicted results were measured.
 
+## Required `experiment_review.md` Structure
 
-## Version Management
+Use these headings exactly so the verifier can find them:
 
-- **Version numbers are managed automatically** by `submit_for_review.sh` — never create version numbers manually
-- Each call creates `submissions/v{N}_{timestamp}/` with a frozen copy of the paper, experiments, figures, and reviewer feedback
-- The working directories (`latex/`, `experiment_codebase/`, `figures/`) remain mutable — always edit there, never in `submissions/`
-- To see version history: read `submissions/version_log.json`
-- To compare with previous versions: read `submissions/v{N}_{timestamp}/paper.tex`
+```markdown
+# Experiment Rationality Review
 
-## Research Conventions
+## Idea Summary
 
-### Scientific Method
-1. Observe → Hypothesize → Experiment → Analyze → Iterate
-2. Always search literature before claiming novelty
-3. Include baselines for comparison
-4. Use multiple runs/seeds when appropriate
-5. Report results truthfully — negative results are valuable
+## Verdict
 
-### Experiment Codebase Organization
+## Hypothesis And Claim Fit
 
-Keep `experiment_codebase/` organized however makes sense for your project. A common layout:
+## Experimental Design Assessment
 
+## Baselines And Controls
+
+## Data, Metrics, And Evaluation
+
+## Feasibility And Cost
+
+## Predicted Results And Rationale
+
+## Threats To Validity
+
+## Recommended Changes Before Running
+
+## Final Recommendation
 ```
-experiment_codebase/
-    README.md               # Experiment log — what you ran, what you found
-    cloned_repos/           # Third-party code (git-cloned repos, reference implementations)
+
+Use this decision scale in the final recommendation:
+
+- `Run` - The design is mostly sound; only minor clarifications are needed.
+- `Revise Before Running` - The idea may be worthwhile, but design gaps would
+  undermine the results.
+- `Do Not Run Yet` - The current experiment would likely produce misleading or
+  non-actionable evidence.
+
+When writing `review.json`, include:
+
+```json
+{
+  "decision": "Run | Revise Before Running | Do Not Run Yet",
+  "confidence": 1,
+  "soundness": 1,
+  "feasibility": 1,
+  "main_risks": [],
+  "required_changes": []
+}
 ```
 
-Keep code next to its results. Put third-party code in `cloned_repos/`. Maintain a `README.md` as a running log of what you ran and what you found.
+Scores are 1-5, where 5 is strongest.
 
-### File Conventions
-- Research ideas: `idea.json`
-- Plots: `figures/*.png` — visually inspect each PNG with `Read` tool before finalizing
-- Paper: `latex/template.tex` → compiled to PDF
-- Versioned snapshots: `submissions/v{N}_{timestamp}/` (created by `submit_for_review.sh`)
+## Paper Requirements
 
-### Experiment Guidelines
-- Use `uv pip install --system` (preferred over pip)
-- Clone existing implementations before writing from scratch
-- Prefer faster iterations over one long run
+- Be explicit that no new experiments were run.
+- Include a predicted-results section or table, clearly labeled as predicted,
+  expected, or hypothesized.
+- Predicted numbers are allowed only as rough estimates or illustrative ranges
+  with rationale; never present them as measured results.
+- Do not include fabricated measured accuracy, runtime, error bars, tables, or plots.
+- If a table is useful, it may summarize proposed baselines, planned metrics,
+  expected risks, review criteria, or predicted outcomes, not measured results.
+- The abstract and conclusion must not imply empirical validation.
+- The limitations section must name the missing empirical evidence and explain
+  what future execution would need to establish.
+- Citations must be real and relevant.
 
-### Paper Writing
-- Copy `blank_icbinb_latex/` to `latex/` to start
-- Template has `%%%%%%%%%TITLE%%%%%%%%%` markers with placeholder text — replace ALL of them
-- Compile with: `bash scripts/compile_latex.sh latex/`
-- **CRITICAL**: BibTeX entries go inside `\begin{filecontents}{references.bib}...\end{filecontents}` in `template.tex`. The `\bibliography{}` argument MUST match `references` — if it says `iclr2025`, change it to `references`. Mismatched names cause all citations to render as **?**.
-- Use `/search-papers` to find papers, get BibTeX from S2 `citationStyles` field or CrossRef `dx.doi.org`.
-- Clean citation keys: lowercase, no accents, no special characters
+## Important Rules
 
-### Quality Standards
-- Papers must compile without errors
-- All figures referenced in text must exist
-- Citations must have valid BibTeX entries
-- Results must be real — never hallucinate numbers
-- Publication-quality plots (labeled axes, legends, readable fonts)
-- At least one submission through `scripts/submit_for_review.sh` with reviewer feedback addressed
-- Experimental rigor appropriate to the claims (proper baselines, controls, statistical tests as needed)
+- Do not run training, benchmarking, model evaluation, or ablation experiments.
+- Do not fabricate measured results, figures, tables, citations, or performance
+  numbers. Clearly labeled predicted outcomes are allowed.
+- Do not turn the idea into an unrelated research project.
+- Small shell commands for file inspection and LaTeX compilation are fine.
+- If evidence is missing, state what would need to be checked before experiments.
+- Save `experiment_review.md`, `latex/template.tex`, and `latex/template.pdf`
+  before finishing.
