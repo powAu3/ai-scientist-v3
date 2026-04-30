@@ -68,10 +68,12 @@ def main() -> int:
     tex_path = root / "latex" / "template.tex"
     pdf_path = root / "latex" / "template.pdf"
     csv_path = root / "predicted_results" / "predicted_results.csv"
+    measured_csv_path = root / "results" / "measured_results.csv"
     literature_path = root / "literature" / "literature_matrix.md"
 
     tex = read_text(tex_path)
-    rows = read_csv_rows(csv_path)
+    measured_rows = read_csv_rows(measured_csv_path)
+    rows = measured_rows or read_csv_rows(csv_path)
     statuses = sorted({row.get("evidence_status", "").strip() for row in rows if row.get("evidence_status")})
     replacement_triggers = sorted(
         {row.get("replacement_trigger", "").strip() for row in rows if row.get("replacement_trigger")}
@@ -97,7 +99,8 @@ completed training or benchmark run.
 
 - Paper source: `{tex_path.relative_to(root)}` ({count_words(tex)} approximate words)
 - PDF artifact: `{pdf_path.relative_to(root)}` ({'present' if pdf_path.exists() else 'missing'})
-- Prediction CSV: `{csv_path.relative_to(root)}` ({len(rows)} data rows plus one header row)
+- Measured results CSV: `{measured_csv_path.relative_to(root)}` ({len(measured_rows)} data rows plus one header row)
+- Prediction/planning CSV: `{csv_path.relative_to(root)}` ({len(read_csv_rows(csv_path))} data rows plus one header row)
 - Literature matrix: `{literature_path.relative_to(root)}` ({'present' if literature_path.exists() else 'missing'})
 - Figure provenance: `figures/figure_provenance.json` ({'present' if (root / 'figures' / 'figure_provenance.json').exists() else 'missing'})
 - Manuscript sections: {', '.join(sections) if sections else 'none detected'}
@@ -105,11 +108,10 @@ completed training or benchmark run.
 - Tables referenced in paper: {table_count}
 
 The main manuscript may use normal table names such as "Comparison on
-road-crack benchmarks" for layout realism, but the underlying result rows remain
-review-backed forecasts until a real benchmark replaces them. Any `+/-` ranges
-in the paper are planning tolerances for future runs, not measured variance,
-confidence intervals, or seed statistics. In the current manuscript table, these
-are shown as planning ranges rather than `+/-` error bars.
+benchmarks" when the rows are backed by `results/`. Forecast or planning rows
+remain planning evidence only and must not be used as final empirical claims.
+Any `+/-` values should be traceable to measured seed variation or explicitly
+described as planning tolerances.
 
 The contribution should be read primarily as a pre-registered protocol and
 falsifiable evaluation contract. The proposed detector architecture reuses known
@@ -134,14 +136,14 @@ paper when these triggers are satisfied:
 ## Reader Guidance
 
 - Treat the PDF as a manuscript-quality effect test and protocol draft.
-- Treat `predicted_results/predicted_results.csv` as the machine-readable source
-  for current comparison values.
+- Treat `results/measured_results.csv` as the machine-readable source for final
+  empirical comparison values when it exists.
+- Treat `predicted_results/predicted_results.csv` as planning evidence only.
 - Treat `literature/literature_matrix.md` as the citation-to-claim map.
 - Treat `experiment_review.md`, `preflight_repair.md`, and
   `revised_experiment_protocol.md` as the gate and repair chain.
-- Do not cite the current values as measured results. They become empirical
-  results only after training, evaluation, seed analysis, and figure
-  regeneration are completed.
+- Do not cite planning values as measured results. Empirical claims require
+  training/evaluation logs, measured result rows, and regenerated figures.
 """
 
     output.write_text(note, encoding="utf-8")

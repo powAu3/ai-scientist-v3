@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run an AI Scientist review-backed paper task in Harbor
+# Run an AI Scientist normal experiment paper task in Harbor
 #
 # Usage: ./run.sh <ideas/idea_*.json> [OPTIONS]
 #
@@ -80,7 +80,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--help)
             echo "Usage: ./run.sh <idea.json> [OPTIONS]"
-            echo "Runs a review-backed paper task: no experiment execution, polished PDF, and separate evidence explanation."
+            echo "Runs a normal empirical paper task: review, repair, experiment execution, polished PDF/DOCX, and provenance explanation."
             echo ""
             echo "Arguments:"
             echo "  idea.json                  Path to research idea JSON file"
@@ -490,7 +490,7 @@ if [[ "$GPUS" != "0" ]]; then
     HARBOR_ARGS+=(--override-gpus "$GPUS")
 fi
 
-echo "Starting Harbor review-backed paper run..."
+echo "Starting Harbor normal experiment paper run..."
 echo "  Idea:    $IDEA_JSON"
 echo "  Model:   $MODEL"
 echo "  Timeout: ${TIMEOUT}s"

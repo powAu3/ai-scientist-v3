@@ -30,7 +30,7 @@
 #   CODEX_MODEL    — Model for Codex CLI (default: the local Codex CLI default)
 #   GEMINI_MODEL   — Model for Gemini CLI (default: auto)
 #   FINAL_GATE_REVIEWER — 1 (default) runs a final Claude area-chair gate after reviewer aggregation
-#   GENERATE_PREDICTED_FIGURES — 1 (default) refreshes figures from predicted_results.csv
+#   GENERATE_PREDICTED_FIGURES — 1 (default) refreshes optional planning/static figures when predicted_results.csv exists
 #   GENERATE_MANIFEST_TEMPLATES — 1 (default) materializes protocol manifest schemas before review
 #   RUN_PAPER_QUALITY_AUDIT — 1 (default) runs the static manuscript/citation/data audit before review
 #   RUN_STYLE_AUDIT — 1 (default) runs a Claude manuscript style audit when available
@@ -185,7 +185,7 @@ run_single_reviewer() {
         return 1
     fi
 
-    local task_prompt="Review the low-compute review-backed research submission. The paper is at latex/template.tex (compiled PDF at latex/template.pdf and Word export at latex/template.docx). Inspect the full workspace: experiment_review.md, review.json, preflight_repair.md, revised_experiment_protocol.md, manuscript_explanation.md, manifests/, predicted_results/, figures/, literature/, reviews/, submissions/, and latex/. Output the final markdown review immediately using the required headings in your agent prompt; do not describe a plan, wait for more instructions, or emit process notes. Do not ask to run training or benchmarks; evaluate the protocol, manifest lock templates, predicted evidence, citations, companion explanation, and visual artifacts."
+    local task_prompt="Review the normal empirical research submission. The paper is at latex/template.tex (compiled PDF at latex/template.pdf and Word export at latex/template.docx). Inspect the full workspace: experiment_review.md, review.json, preflight_repair.md, revised_experiment_protocol.md, experiment_codebase/, results/, configs/, manifests/, reports/, manuscript_explanation.md, figures/, literature/, reviews/, submissions/, and latex/. Output the final markdown review immediately using the required headings in your agent prompt; do not describe a plan, wait for more instructions, or emit process notes. Evaluate protocol correctness, measured-result traceability, citations, companion explanation, visual artifacts, and reproducibility."
 
     cd "$BASE_DIR"
 
@@ -357,7 +357,7 @@ run_area_chair_gate() {
     if [ "$REVIEWER_MODE" = "api" ]; then
         raw_hint="reviewer_raw_response.json"
     fi
-    gate_prompt="Run the final top-A-conference area-chair gate for this low-compute review-backed submission. Inspect the current root artifacts: latex/template.tex, latex/template.pdf, latex/template.docx, experiment_review.md, review.json, preflight_repair.md, revised_experiment_protocol.md, manuscript_explanation.md, manifests/, predicted_results/, figures/, literature/, reviews/current_review_record.md, reviews/top_tier_review.md, reviews/figure_audit.md, and $raw_hint. You are generating the current area-chair gate artifact now, so do not fail the submission because a previous area-chair gate file is absent or stale before this run completes. Treat older submissions/ directories as historical superseded snapshots unless current_review_record.md names one as current. Be extremely strict. If the paper is not ready, route it back to the precise upstream repair artifact. Do not ask to run training or benchmarks."
+    gate_prompt="Run the final top-A-conference area-chair gate for this normal empirical submission. Inspect the current root artifacts: latex/template.tex, latex/template.pdf, latex/template.docx, experiment_review.md, review.json, preflight_repair.md, revised_experiment_protocol.md, experiment_codebase/, results/, configs/, manifests/, reports/, manuscript_explanation.md, figures/, literature/, reviews/current_review_record.md, reviews/top_tier_review.md, reviews/figure_audit.md, and $raw_hint. You are generating the current area-chair gate artifact now, so do not fail the submission because a previous area-chair gate file is absent or stale before this run completes. Treat older submissions/ directories as historical superseded snapshots unless current_review_record.md names one as current. Be extremely strict. If the paper is not ready, route it back to the precise upstream repair artifact."
 
     cd "$BASE_DIR"
     echo ""
@@ -616,7 +616,7 @@ elif [ "$REVIEWER_MODE" = "subagent" ]; then
 
         REVIEW_PROMPT_FILE=$(mktemp)
         strip_frontmatter "$REVIEWER_PROMPT_FILE" > "$REVIEW_PROMPT_FILE"
-        printf '\n\nReview the research submission. The paper is at %s (PDF and DOCX exports should be in latex/). Inspect the full workspace: experiment_review.md, review.json, preflight_repair.md, revised_experiment_protocol.md, manuscript_explanation.md, manifests/, predicted_results/, figures/, literature/, reviews/, submissions/, and latex/. Output the final markdown review immediately using the required headings; do not emit process notes.\n' "$TEX_PATH" >> "$REVIEW_PROMPT_FILE"
+        printf '\n\nReview the research submission. The paper is at %s (PDF and DOCX exports should be in latex/). Inspect the full workspace: experiment_review.md, review.json, preflight_repair.md, revised_experiment_protocol.md, experiment_codebase/, results/, configs/, manifests/, reports/, manuscript_explanation.md, figures/, literature/, reviews/, submissions/, and latex/. Output the final markdown review immediately using the required headings; do not emit process notes.\n' "$TEX_PATH" >> "$REVIEW_PROMPT_FILE"
 
         # Bridge API key if needed
         if [ -z "${CODEX_API_KEY:-}" ] && [ -n "${OPENAI_API_KEY:-}" ]; then
@@ -660,7 +660,7 @@ elif [ "$REVIEWER_MODE" = "subagent" ]; then
         # Write the full review prompt to a temp file (too large for shell argument)
         REVIEW_PROMPT_FILE=$(mktemp)
         cat > "$REVIEW_PROMPT_FILE" <<REVIEW_EOF
-Review the research submission. The paper is at $TEX_PATH (PDF and DOCX exports should be in latex/). Inspect the full workspace: experiment_review.md, review.json, preflight_repair.md, revised_experiment_protocol.md, manuscript_explanation.md, manifests/, predicted_results/, figures/, literature/, reviews/, submissions/, and latex/. Output the final markdown review immediately using the required headings; do not emit process notes.
+Review the research submission. The paper is at $TEX_PATH (PDF and DOCX exports should be in latex/). Inspect the full workspace: experiment_review.md, review.json, preflight_repair.md, revised_experiment_protocol.md, experiment_codebase/, results/, configs/, manifests/, reports/, manuscript_explanation.md, figures/, literature/, reviews/, submissions/, and latex/. Output the final markdown review immediately using the required headings; do not emit process notes.
 
 $REVIEWER_SYSTEM_PROMPT
 REVIEW_EOF
@@ -704,7 +704,7 @@ except Exception as e:
             --agent reviewer \
             --permission-mode bypassPermissions \
             --output-format text \
-            "Review the low-compute review-backed research submission. The paper is at latex/template.tex (compiled PDF at latex/template.pdf and Word export at latex/template.docx). Inspect the full workspace: experiment_review.md, review.json, preflight_repair.md, revised_experiment_protocol.md, manuscript_explanation.md, manifests/, predicted_results/, figures/, literature/, reviews/, submissions/, and latex/. Output the final markdown review immediately using the required headings; do not describe a plan or emit process notes. Do not ask to run training or benchmarks; evaluate the protocol, manifest lock templates, predicted evidence, citations, companion explanation, and visual artifacts." \
+            "Review the normal empirical research submission. The paper is at latex/template.tex (compiled PDF at latex/template.pdf and Word export at latex/template.docx). Inspect the full workspace: experiment_review.md, review.json, preflight_repair.md, revised_experiment_protocol.md, experiment_codebase/, results/, configs/, manifests/, reports/, manuscript_explanation.md, figures/, literature/, reviews/, submissions/, and latex/. Output the final markdown review immediately using the required headings; do not describe a plan or emit process notes. Evaluate protocol correctness, measured-result traceability, citations, companion explanation, visual artifacts, and reproducibility." \
             > "$RAW_RESPONSE" 2>"$BASE_DIR/reviewer_subagent_stderr.log"; then
             echo "Warning: Claude reviewer subagent returned non-zero exit code." >&2
         fi
@@ -876,8 +876,8 @@ if [ -d "$BASE_DIR/figures" ]; then
     cp -r "$BASE_DIR/figures" "$VERSION_DIR/figures"
 fi
 
-# Copy the evidence bundle needed to interpret the review-backed manuscript.
-for artifact_dir in predicted_results literature configs manifests reports; do
+# Copy the evidence bundle needed to interpret the empirical manuscript.
+for artifact_dir in results predicted_results literature configs manifests reports; do
     if [ -d "$BASE_DIR/$artifact_dir" ]; then
         cp -r "$BASE_DIR/$artifact_dir" "$VERSION_DIR/$artifact_dir"
     fi
@@ -983,6 +983,7 @@ version_entry = {
     'paper_docx': os.path.exists('$VERSION_DIR/paper.docx'),
     'has_experiments': os.path.isdir('$VERSION_DIR/experiment_codebase'),
     'has_figures': os.path.isdir('$VERSION_DIR/figures'),
+    'has_results': os.path.isdir('$VERSION_DIR/results'),
     'has_predicted_results': os.path.isdir('$VERSION_DIR/predicted_results'),
     'has_literature': os.path.isdir('$VERSION_DIR/literature'),
     'has_protocol_locks': os.path.isdir('$VERSION_DIR/manifests') or os.path.isdir('$VERSION_DIR/configs') or os.path.isdir('$VERSION_DIR/reports'),

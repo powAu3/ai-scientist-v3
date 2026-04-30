@@ -1,16 +1,18 @@
 #!/bin/bash
-# Verify that the agent produced a review-backed paper, copy artifacts to the
+# Verify that the agent produced a normal empirical paper, copy artifacts to the
 # mounted logs directories, and snapshot dependencies.
 
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/app}"
 LOGS_DIR="${LOGS_DIR:-/logs}"
+RESEARCH_RUN_MODE="${RESEARCH_RUN_MODE:-full-experiment}"
 REVIEW_FILE="$APP_DIR/experiment_review.md"
 REVIEW_JSON="$APP_DIR/review.json"
 REPAIR_FILE="$APP_DIR/preflight_repair.md"
 REVISED_PROTOCOL_FILE="$APP_DIR/revised_experiment_protocol.md"
 EXPERIMENT_CODEBASE="$APP_DIR/experiment_codebase"
+MEASURED_DATA="$APP_DIR/results/measured_results.csv"
 PREDICTED_DATA="$APP_DIR/predicted_results/predicted_results.csv"
 DEPENDENCY_SNAPSHOT="$LOGS_DIR/verifier/requirements.txt"
 PAPER_TEX="$APP_DIR/latex/template.tex"
@@ -52,6 +54,7 @@ for dest in "$LOGS_DIR/agent/artifacts" "$LOGS_DIR/verifier/artifacts"; do
     cp "$REPAIR_FILE" "$dest/preflight_repair.md" 2>/dev/null || true
     cp "$REVISED_PROTOCOL_FILE" "$dest/revised_experiment_protocol.md" 2>/dev/null || true
     cp -r "$EXPERIMENT_CODEBASE" "$dest/experiment_codebase" 2>/dev/null || true
+    cp -r "$APP_DIR/results/" "$dest/results/" 2>/dev/null || true
     cp -r "$APP_DIR/configs/" "$dest/configs/" 2>/dev/null || true
     cp -r "$APP_DIR/predicted_results/" "$dest/predicted_results/" 2>/dev/null || true
     cp -r "$APP_DIR/manifests/" "$dest/manifests/" 2>/dev/null || true
@@ -73,9 +76,13 @@ has_heading() {
     grep -Eiq "^##[[:space:]]+$heading[[:space:]]*$" "$REVIEW_FILE" 2>/dev/null
 }
 
-paper_declares_prediction_mode() {
-    grep -Eiq "predicted|expected|hypothesized|hypothetical" "$PAPER_TEX" 2>/dev/null && \
-        grep -Eiq "no new experiments|not run|not executed|without running" "$PAPER_TEX" 2>/dev/null
+paper_declares_evidence_mode() {
+    if [ "$RESEARCH_RUN_MODE" = "full-experiment" ]; then
+        grep -Eiq "measured|experiment|results|baseline|ablation" "$PAPER_TEX" 2>/dev/null
+    else
+        grep -Eiq "predicted|expected|hypothesized|hypothetical" "$PAPER_TEX" 2>/dev/null && \
+            grep -Eiq "no new experiments|not run|not executed|without running" "$PAPER_TEX" 2>/dev/null
+    fi
 }
 
 paper_has_formula() {
@@ -96,7 +103,7 @@ with zipfile.ZipFile(path) as zf:
     if "[Content_Types].xml" not in names or "word/document.xml" not in names:
         raise SystemExit(1)
     document = zf.read("word/document.xml").decode("utf-8", errors="ignore")
-    if "CrackYOLO" not in document and "Review" not in document:
+    if len(document) < 1000:
         raise SystemExit(1)
 PY
 }
@@ -130,7 +137,7 @@ paper_has_v2_structure() {
         grep -Eiq '\\section\{Background\}' "$PAPER_TEX" 2>/dev/null && \
         grep -Eiq '\\section\{Method\}' "$PAPER_TEX" 2>/dev/null && \
         grep -Eiq '\\section\{Experimental Setup\}' "$PAPER_TEX" 2>/dev/null && \
-        grep -Eiq '\\section\{Predicted Results|\\section\{Experiments' "$PAPER_TEX" 2>/dev/null && \
+        grep -Eiq '\\section\{Predicted Results|\\section\{Experiments|\\section\{Results' "$PAPER_TEX" 2>/dev/null && \
         grep -Eiq '\\section\{Limitations\}' "$PAPER_TEX" 2>/dev/null && \
         grep -Eiq '\\section\{Conclusion\}' "$PAPER_TEX" 2>/dev/null && \
         grep -Eiq '\\begin\{table\}' "$PAPER_TEX" 2>/dev/null
@@ -154,11 +161,15 @@ literature_matrix_valid() {
 }
 
 manuscript_explanation_valid() {
-    [ -s "$MANUSCRIPT_EXPLANATION" ] && \
+    [ -s "$MANUSCRIPT_EXPLANATION" ] || return 1
+    if [ "$RESEARCH_RUN_MODE" = "full-experiment" ]; then
+        grep -Eiq "results|measured|artifact|provenance|experiment" "$MANUSCRIPT_EXPLANATION" 2>/dev/null
+    else
         grep -Eiq "PDF|manuscript-effect|effect test|protocol draft" "$MANUSCRIPT_EXPLANATION" 2>/dev/null && \
-        grep -Eiq "predicted_results|Prediction CSV|forecast CSV" "$MANUSCRIPT_EXPLANATION" 2>/dev/null && \
-        grep -Eiq "evidence status|Evidence Status|replacement trigger|Replacement Trigger" "$MANUSCRIPT_EXPLANATION" 2>/dev/null && \
-        grep -Eiq "not.*measured|training|benchmark" "$MANUSCRIPT_EXPLANATION" 2>/dev/null
+            grep -Eiq "predicted_results|Prediction CSV|forecast CSV" "$MANUSCRIPT_EXPLANATION" 2>/dev/null && \
+            grep -Eiq "evidence status|Evidence Status|replacement trigger|Replacement Trigger" "$MANUSCRIPT_EXPLANATION" 2>/dev/null && \
+            grep -Eiq "not.*measured|training|benchmark" "$MANUSCRIPT_EXPLANATION" 2>/dev/null
+    fi
 }
 
 review_artifacts_valid() {
@@ -240,6 +251,20 @@ predicted_data_valid() {
         grep -Eiq "source_kind|regeneration|planning_forecast" "$FIGURE_PROVENANCE_JSON" 2>/dev/null
 }
 
+measured_data_valid() {
+    [ -s "$MEASURED_DATA" ] && \
+        [ "$(wc -l < "$MEASURED_DATA" 2>/dev/null || echo 0)" -ge 2 ] && \
+        grep -Eiq "metric|value|method|dataset|scenario" "$MEASURED_DATA" 2>/dev/null
+}
+
+result_data_valid() {
+    if [ "$RESEARCH_RUN_MODE" = "full-experiment" ]; then
+        measured_data_valid
+    else
+        predicted_data_valid
+    fi
+}
+
 if [ -s "$REVIEW_FILE" ] && \
    review_json_valid && \
    has_heading "Final Recommendation" && \
@@ -263,13 +288,13 @@ else
 fi
 
 if has_heading "Threats To Validity" && \
-   has_heading "Recommended Changes Before Running" && \
-   has_heading "Predicted Results And Rationale" && \
+   (has_heading "Recommended Changes Before Running" || has_heading "Execution Plan") && \
+   (has_heading "Predicted Results And Rationale" || has_heading "Execution Plan") && \
    has_heading "Preflight Repair Handoff"; then
     SCORE=$((SCORE + 1))
-    echo "OK: risks, predicted results, and repair handoff"
+    echo "OK: risks, execution/results plan, and repair handoff"
 else
-    echo "MISSING: risks, predicted results, or repair handoff"
+    echo "MISSING: risks, execution/results plan, or repair handoff"
 fi
 
 if repair_required; then
@@ -284,18 +309,18 @@ else
     echo "OK: preflight repair not required by gate"
 fi
 
-if predicted_data_valid && [ -n "$(figure_file)" ] && paper_references_figure; then
+if result_data_valid && [ -n "$(figure_file)" ] && paper_references_figure; then
     SCORE=$((SCORE + 1))
-    echo "OK: predicted data and chart artifact"
+    echo "OK: result data and chart artifact"
 else
-    echo "MISSING: predicted data, chart artifact, or paper figure reference"
+    echo "MISSING: result data, chart artifact, or paper figure reference"
 fi
 
-if [ -s "$PAPER_TEX" ] && [ -s "$PAPER_PDF" ] && paper_declares_prediction_mode && paper_has_formula; then
+if [ -s "$PAPER_TEX" ] && [ -s "$PAPER_PDF" ] && paper_declares_evidence_mode && paper_has_formula; then
     SCORE=$((SCORE + 1))
-    echo "OK: paper source, compiled PDF, prediction disclosure, and formula"
+    echo "OK: paper source, compiled PDF, evidence framing, and formula"
 else
-    echo "MISSING: paper source, compiled PDF, prediction disclosure, or formula"
+    echo "MISSING: paper source, compiled PDF, evidence framing, or formula"
 fi
 
 if docx_valid; then

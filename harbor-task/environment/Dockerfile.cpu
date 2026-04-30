@@ -37,6 +37,7 @@ COPY .codex_auth/ /app/.codex_auth/
 RUN mkdir -p /app/experiment_codebase/baselines /app/experiment_codebase/main \
     /app/experiment_codebase/ablations /app/experiment_codebase/plotting \
     /app/experiment_codebase/cloned_repos \
+    /app/results /app/configs /app/manifests /app/reports \
     /app/figures /app/latex /app/literature /app/reviews /app/submissions && \
     cp -r /app/blank_icbinb_latex/* /app/latex/ && \
     chmod +x /app/scripts/submit_for_review.sh /app/scripts/convert_latex_to_docx.sh \
@@ -56,6 +57,10 @@ COPY prev_artifacts/ /app/prev_artifacts/
 RUN set +e; \
     if [ "$(ls -A /app/prev_artifacts 2>/dev/null)" ]; then \
         cp -r /app/prev_artifacts/experiment_codebase/* /app/experiment_codebase/ 2>/dev/null; \
+        cp -r /app/prev_artifacts/results/* /app/results/ 2>/dev/null; \
+        cp -r /app/prev_artifacts/configs/* /app/configs/ 2>/dev/null; \
+        cp -r /app/prev_artifacts/manifests/* /app/manifests/ 2>/dev/null; \
+        cp -r /app/prev_artifacts/reports/* /app/reports/ 2>/dev/null; \
         cp -r /app/prev_artifacts/figures/* /app/figures/ 2>/dev/null; \
         cp /app/prev_artifacts/paper.tex /app/latex/template.tex 2>/dev/null; \
         cp /app/prev_artifacts/paper.pdf /app/latex/template.pdf 2>/dev/null; \

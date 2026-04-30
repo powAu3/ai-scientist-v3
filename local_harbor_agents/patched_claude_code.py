@@ -85,6 +85,7 @@ sync_artifacts() {{
     for DEST in /logs/agent/artifacts /logs/verifier/artifacts; do
         mkdir -p "$DEST" 2>/dev/null || true
         copy_tree "/app/experiment_codebase" "experiment_codebase"
+        copy_tree "/app/results" "results"
         copy_tree "/app/configs" "configs"
         copy_tree "/app/figures" "figures"
         copy_tree "/app/literature" "literature"

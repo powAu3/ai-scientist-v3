@@ -403,6 +403,7 @@ class TestArtifactSyncParity(unittest.TestCase):
 
     REQUIRED_ARTIFACTS = [
         "experiment_codebase",
+        "results",
         "figures",
         "literature",
         "paper.pdf",

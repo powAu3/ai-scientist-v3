@@ -240,6 +240,7 @@ def stage_artifacts(
         paper.pdf              — latest paper
         paper.docx             — latest Word export
         figures/               — latest figures
+        results/               — measured result tables and run logs
         configs/               — environment-lock templates
         manifests/             — protocol manifest templates and lock summary
         reports/               — compute-parity report templates
@@ -343,6 +344,15 @@ def stage_artifacts(
 
     # Protocol lock templates and summaries.
     if artifacts_dir:
+        results_src = os.path.join(artifacts_dir, "results")
+        if os.path.isdir(results_src):
+            results_dst = os.path.join(staging, "results")
+            os.makedirs(results_dst, exist_ok=True)
+            for fname in sorted(os.listdir(results_src)):
+                src = os.path.join(results_src, fname)
+                if os.path.isfile(src):
+                    sanitizer.sanitize_file(src, os.path.join(results_dst, fname))
+
         configs_src = os.path.join(artifacts_dir, "configs")
         if os.path.isdir(configs_src):
             configs_dst = os.path.join(staging, "configs")

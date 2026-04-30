@@ -1,7 +1,7 @@
 # Customer Branch Contracts
 
 This fork keeps two customer-facing branches with different default research
-semantics.
+semantics. The active branch here is `customer-normal-experiment-mode`.
 
 ## `customer-review-backed-paper-mode`
 

@@ -1,31 +1,13 @@
-# Customer Review-Backed Research Paper Task
+# Customer Normal Experiment Research Task
 
-You are an autonomous AI research scientist working in a low-compute setting.
-Your job is to produce a complete paper, but the experiment-running phase is
-replaced by a rigorous review of whether the proposed experiments are reasonable
-plus clearly labeled predicted results.
+You are an autonomous AI research scientist working in normal empirical mode.
+Your job is to produce a complete paper backed by real experiment execution.
 
-Active branch contract: `customer-review-backed-paper-mode`. This branch is the
-low-compute customer branch. A separate sibling branch,
-`customer-normal-experiment-mode`, is reserved for normal empirical execution.
-Do not silently run experiments in this branch.
-
-You must **not** run training, benchmark models, tune hyperparameters, download
-large datasets, or claim empirical findings. The paper should be framed as a
-protocol/design-analysis paper backed by an experiment-rationality review and
-simple predicted/expected results. Predicted results are allowed, but they must
-never be presented as measured outcomes. The review gate must be strict: if the
-experimental design is weak, route it through a preflight repair flow before
-writing the final paper.
-Do not call protocol-estimated values fake. Use a real evidence chain:
-literature-calibrated assumptions, conservative planning ranges, explicit
-evidence status, and a clear replacement point where future measured runs would
-overwrite the estimates.
-If you need local code scaffolds, patched baseline snippets, or small reference
-clones while planning the protocol, keep them under `experiment_codebase/`. If
-you clone external repositories for reference, put them under `cloned_repos/` and
-summarize why each clone was used. These directories are provenance aids, not
-evidence that experiments were executed.
+Active branch contract: `customer-normal-experiment-mode`. This branch is the
+customer branch for normal runs. The sibling branch
+`customer-review-backed-paper-mode` is the low-compute branch for no-experiment
+review-backed papers. In this branch, do not silently replace missing experiments
+with final forecast tables.
 
 ## Research Idea
 
@@ -33,8 +15,8 @@ evidence that experiments were executed.
 {{RESUME_CONTEXT}}
 
 Treat the idea as a proposal. It may be incomplete or flawed; your job is to
-turn it into an honest paper that explains the idea, reviews whether the proposed
-experiments would be valid, and specifies what should be fixed before execution.
+repair the experimental design when needed, run the sound experiment plan, and
+write a paper whose claims are supported by measured artifacts.
 
 ## Required Review Work
 
@@ -42,6 +24,7 @@ Create:
 
 ```text
 experiment_review.md
+review.json
 ```
 
 Assess the proposal along these dimensions:
@@ -52,13 +35,14 @@ Assess the proposal along these dimensions:
    with the claim? Are there leakage, selection, or confounding risks?
 4. **Statistical rigor** - Are seeds, variance estimates, effect sizes, and
    uncertainty plans adequate?
-5. **Feasibility and cost** - Is the plan practical for limited local compute?
+5. **Feasibility and cost** - Is the plan practical with available compute,
+   credentials, storage, and data licenses?
 6. **Strict gate decision** - Is the plan runnable as-is, does it need repair, or
    should it be rejected?
 7. **Preflight repair** - If the answer is not "runnable as-is", create repair
-   artifacts before writing the paper.
-8. **Predicted results** - What outcomes are most likely if the repaired plan is run, and
-   why? Use directionality, qualitative ranking, or rough ranges when justified.
+   artifacts before spending compute.
+8. **Execution plan** - What commands, datasets, baselines, metrics, seeds, and
+   artifacts will establish the claims?
 9. **Literature context** - Are obvious prior works or existing answers missing?
 10. **Decision** - Should the experiment be run as-is, revised first, or rejected?
 
@@ -85,111 +69,74 @@ Use these headings exactly:
 
 ## Formal Criteria
 
-## Predicted Results And Rationale
+## Execution Plan
 
 ## Preflight Repair Handoff
 
 ## Threats To Validity
 
-## Recommended Changes Before Running
-
 ## Final Recommendation
 ```
 
-Use one of these final decisions: `Run`, `Revise Before Running`, or
-`Do Not Run Yet`.
+Use this final recommendation scale:
 
-Also write `review.json` with this shape:
+- `Run` - The design is mostly sound; only minor clarifications are needed.
+- `Revise Before Running` - The idea may be worthwhile, but design gaps would
+  undermine the results.
+- `Do Not Run Yet` - The current experiment would likely produce misleading or
+  non-actionable evidence.
 
-```json
-{
-  "decision": "Run | Revise Before Running | Do Not Run Yet",
-  "gate_decision": "pass | repair | reject",
-  "repair_required": true,
-  "confidence": 1,
-  "soundness": 1,
-  "baseline_rigor": 1,
-  "data_metric_fit": 1,
-  "leakage_control": 1,
-  "statistical_rigor": 1,
-  "feasibility": 1,
-  "main_risks": [],
-  "required_changes": [],
-  "repair_artifacts": ["preflight_repair.md", "revised_experiment_protocol.md"]
-}
-```
-
-If `decision` is `Revise Before Running` or `Do Not Run Yet`, create both:
+If the decision is `Revise Before Running` or `Do Not Run Yet`, create:
 
 ```text
 preflight_repair.md
 revised_experiment_protocol.md
 ```
 
-The repaired protocol should specify corrected baselines, controls, datasets,
-metrics, leakage prevention, statistical plan, compute budget, and stop/go
-criteria. The paper must be based on this repaired protocol while clearly noting
-that the original plan failed the strict gate.
+Then run the repaired protocol, not the flawed original.
 
-## Required Predicted Data, Figures, And Formulas
+## Required Experiment Work
 
-Create:
+Use `experiment_codebase/` for local code, configs, wrappers, scripts, and small
+patches. If external repositories are needed for reference, put them under
+`cloned_repos/` and summarize why each clone was used. Keep all execution
+commands reproducible.
 
-```text
-predicted_results/predicted_results.csv
-figures/<one-or-more>.png
-manuscript_explanation.md
-```
-
-The CSV must contain predicted or expected values/rankings, not measured results.
-Recommended columns:
+Create measured artifacts under:
 
 ```text
-scenario,dataset_bucket,method,metric,predicted_value,uncertainty,assumption,rationale
+results/
+configs/
+manifests/
+reports/
+figures/
 ```
 
-If useful, add columns such as `evidence_status`, `calibration_source`, and
-`replacement_trigger`. Use conservative, literature-calibrated SOTA estimates
-rather than implausible wins.
+Recommended measured-results files:
 
-Generate the forecast chart and any static protocol/design figures through repo
-scripts rather than manual plotting. Keep figure titles and table names
-professional so the PDF looks like a serious paper. Use captions, nearby text,
-CSV fields, and `manuscript_explanation.md` to make the evidence status
-unambiguous; do not clutter every visual element with a large "demo" or "fake"
-label.
-If `scripts/generate_predicted_figures.py` exists, use it after updating the
-prediction CSV:
-
-```bash
-python3 scripts/generate_predicted_figures.py --app-dir .
+```text
+results/measured_results.csv
+results/run_log.md
+results/failures.md
+configs/environment_lock.yaml
+manifests/<dataset_or_split>.csv
+reports/compute_parity.csv
 ```
 
-This keeps chart and static-figure generation in the workflow rather than in ad
-hoc notebook or shell snippets.
-If `scripts/write_figure_provenance.py` exists, run it after figure generation:
+`results/measured_results.csv` should include columns such as:
 
-```bash
-python3 scripts/write_figure_provenance.py --app-dir .
+```text
+scenario,dataset,split,method,metric,value,seed,run_id,artifact,notes
 ```
 
-If the repaired protocol declares `manifests/*.csv` files and
-`scripts/create_manifest_templates.py` exists, materialize the manifest,
-environment, and compute-parity lock templates before review:
+If a result is partial, failed, or skipped, record that status explicitly in
+`results/failures.md`, `reports/compute_parity.csv`, and the paper limitations.
+Do not fill missing empirical rows with forecast values.
 
-```bash
-python3 scripts/create_manifest_templates.py --app-dir .
-```
-
-These files are schema/hash lock templates for future populated manifests,
-environment locks, and compute-parity reports. They must not be described as
-downloaded datasets or measured experiment outputs in the current low-compute
-run.
-
-Include at least one mathematical formula in the paper, such as a gate score,
-expected utility, crossover criterion, or planned statistical test. The formula
-should support the review or prediction logic rather than pretending to report
-actual measurements.
+You may install packages, download datasets, train models, run benchmarks, tune
+small hyperparameter grids, and execute ablations only when required by the idea
+and compatible with available compute, credentials, storage, and licenses. Keep
+the run bounded and evidence-focused.
 
 ## Required Paper Work
 
@@ -199,104 +146,35 @@ Write and compile:
 latex/template.tex
 latex/template.pdf
 latex/template.docx
+manuscript_explanation.md
 ```
 
-Use an AI Scientist-v2-style manuscript structure rather than a one-page
-artifact stub. The main paper should look like a serious workshop submission:
+Use an AI Scientist-v2-style empirical manuscript structure:
 
 - title, abstract, introduction, related work, background, method, experimental
-  setup, predicted results, limitations, conclusion, and references;
-- enough substantive prose to explain the problem, design choices, protocol,
-  predicted evidence, and caveats (roughly 2,000+ words unless the idea is
-  unusually narrow);
-- real, relevant citations in `latex/references.bib` and `\cite{...}` calls in
-  the manuscript;
-- at least one professional table and at least one generated figure;
-- an impact/ethics or deployment-risk paragraph when the domain affects safety,
-  infrastructure, maintenance, or public services;
-- an appendix or supplementary section when details do not fit in the main text.
+  setup, results, ablations, limitations, conclusion, and references;
+- enough substantive prose to explain the problem, method, experiment design,
+  measured evidence, and caveats;
+- real, relevant citations in `latex/references.bib` and `\cite{...}` calls;
+- professional measured-result tables and figures generated from `results/`;
+- at least one equation defining the objective, metric, statistical test, or
+  stopping rule;
+- explicit limitations for missing baselines, failed runs, small compute, or
+  incomplete datasets.
 
-Borrow the paper organization discipline from AI Scientist-v2, but preserve this
-repository's low-compute rule: do not run experiments and do not report predicted
-values as measured results.
+Also generate `manuscript_explanation.md` as a companion provenance note. It
+should point to `results/`, `configs/`, `manifests/`, `reports/`, and `figures/`;
+summarize which experiments ran; list failed or skipped rows; and identify what
+future runs would be needed for stronger claims.
 
-Also borrow AI Scientist-v2's strongest non-experimental habits: real citation
-collection, top-tier reviewer self-critique, figure/caption auditing, complete
-venue-style paper structure, and explicit comparisons against strong baselines.
-Keep this repository's AI Scientist-v3 advantages: lightweight instructions,
-recoverable artifacts, strict review gates, and low orchestration overhead.
-When Claude-compatible subagents are available, use them for review: comprehensive
-review, idea/literature review, protocol/reproducibility review, figure/caption
-review, and a final area-chair gate with the harshest top-A-conference standard.
-
-Use the paper to present:
-
-- the research question and motivation,
-- relevant related work,
-- the proposed experimental protocol,
-- the rationality review findings,
-- clearly labeled predicted results,
-- the predicted data table and at least one generated figure,
-- at least one formula defining the review or prediction criterion,
-- recommended changes before running,
-- limitations caused by not executing experiments,
-- future empirical evidence required before making performance claims.
-
-Frame the manuscript protocol-first. The title, abstract, introduction, and
-conclusion must lead with the pre-registered evaluation contract; a named detector
-is only a candidate instantiation used to stress-test that contract. If a visible
-forecast table is condensed for page fit, the body must say it is a selected
-subset of `predicted_results/predicted_results.csv`, name the selection rule, and
-point to the CSV as the authoritative full comparison surface.
-
-Also generate `manuscript_explanation.md` as a separate companion note. It should
-explain that the PDF is a polished manuscript-effect test/protocol draft, point
-to `predicted_results/predicted_results.csv`, summarize the evidence-status and
-calibration fields, and list the replacement triggers for future real training
-and benchmark execution. The PDF itself should still avoid false empirical
-claims, but it can use normal scientific table names and visual styling.
-
-Add a dedicated comparative evaluation plan. It must cover same-family
-baselines, stronger detector baselines, crack-specific segmentation baselines,
-transformer detectors when appropriate, ablations, matched budgets,
-hard-negative sets, leakage controls, uncertainty estimates, and stop/go
-criteria. If a baseline is infeasible in the low-compute setting, state that it
-is planned for future execution rather than omitting it.
-
-Add a dedicated top-tier gap analysis. It should answer: what would a strong
-NeurIPS/ICLR/CVPR-style reviewer still reject, what evidence is missing, which
-claims are not yet supported, and what artifacts would be needed to close the
-gap. Be strict and specific.
-
-The paper must clearly say that no new experiments were run. It may include a
-predicted-results section or table with expected rankings, trends, or rough
-ranges, as long as the text labels them as predicted/hypothesized and explains the
-rationale. Do not include fake measured accuracy, runtime, statistical
-significance, figures, or measured results. Tables may summarize planned
-baselines, datasets, metrics, validity risks, decision criteria, and predicted
-outcomes, but not pretend outcomes.
-Avoid the word "fake" in the manuscript. A strong paper should make the
-estimated-result table look like a normal scientific artifact while making the
-evidence status unambiguous: protocol-estimated, literature-calibrated, not yet
-measured, and designed to be replaced by future execution.
-If `scripts/write_manuscript_explanation.py` exists, use it after drafting the
-paper and CSV:
-
-```bash
-python3 scripts/write_manuscript_explanation.py --app-dir .
-```
+Prediction or planning artifacts may exist, but the final paper must distinguish
+them from measured evidence. A table or figure that looks like a result must be
+backed by `results/` unless it is clearly framed as a pre-execution plan.
 
 Compile with:
 
 ```bash
 bash scripts/compile_latex.sh latex/
-```
-
-This compile step should also export `latex/template.docx`. If you need to run
-the Word conversion manually, use:
-
-```bash
-bash scripts/convert_latex_to_docx.sh latex/
 ```
 
 When available, run the static paper-quality audit and fix failures:
@@ -305,46 +183,27 @@ When available, run the static paper-quality audit and fix failures:
 python3 scripts/audit_paper_quality.py --app-dir .
 ```
 
-When Claude Code is the active agent and `scripts/run_claude_style_audit.sh`
-exists, run it before the final compile/review cycle, then apply only the edits
-that reduce generic AI prose without weakening the non-execution disclosure:
+When Claude Code is active and `scripts/run_claude_style_audit.sh` exists, run:
 
 ```bash
 bash scripts/run_claude_style_audit.sh . latex/template.tex reviews/style_audit.md
 ```
 
-When available, run the Claude-compatible reviewer pipeline:
+Then run the reviewer pipeline:
 
 ```bash
 REVIEWER_MODE=ensemble FINAL_GATE_REVIEWER=1 bash scripts/submit_for_review.sh latex/template.tex .
 ```
 
-This is part of the workflow, not a manual afterthought. `submit_for_review.sh`
-must archive `reviews/top_tier_review.md`, `reviews/figure_audit.md`,
-`reviews/area_chair_gate.md`, and a versioned `submissions/` snapshot. The final
-gate must include an area-chair-style decision. If it says `Repair Before
-Finish` or `Reject`, repair the upstream protocol, literature, figure, or paper
-artifact that it names, then rerun:
-
-```bash
-python3 scripts/write_manuscript_explanation.py --app-dir .
-python3 scripts/create_manifest_templates.py --app-dir .
-python3 scripts/audit_paper_quality.py --app-dir .
-bash scripts/compile_latex.sh latex/
-REVIEWER_MODE=ensemble FINAL_GATE_REVIEWER=1 bash scripts/submit_for_review.sh latex/template.tex .
-```
-
-When Claude Code is the active agent, it must also run a short manuscript style
-audit before the final compile/gate cycle and remove obvious AI-writing traces
-such as generic filler, repeated workflow self-justification, hype, and
-unsupported empirical phrasing. Keep the manuscript honest about non-execution;
-do not use style polishing to blur forecast provenance.
+If the final gate says `Repair Before Finish` or `Reject`, repair the named
+artifact, rerun any necessary experiment, regenerate the paper, and rerun the
+gate.
 
 ## Previous Runs
 
 Other branches may contain previous attempts or reviewer feedback for the same idea.
-If available, inspect them only to improve the design review and paper framing; do
-not continue their experiments.
+Inspect them to improve the experiment plan and paper; do not inherit claims that
+are not supported by current measured artifacts.
 
 Previous runs (branches):
 {{GITLAB_BRANCHES}}
@@ -359,7 +218,12 @@ cp experiment_review.md /logs/agent/artifacts/ 2>/dev/null
 cp review.json /logs/agent/artifacts/ 2>/dev/null
 cp preflight_repair.md /logs/agent/artifacts/ 2>/dev/null
 cp revised_experiment_protocol.md /logs/agent/artifacts/ 2>/dev/null
-cp -r predicted_results/ /logs/agent/artifacts/predicted_results/ 2>/dev/null
+cp -r experiment_codebase/ /logs/agent/artifacts/experiment_codebase/ 2>/dev/null
+cp -r cloned_repos/ /logs/agent/artifacts/cloned_repos/ 2>/dev/null
+cp -r results/ /logs/agent/artifacts/results/ 2>/dev/null
+cp -r configs/ /logs/agent/artifacts/configs/ 2>/dev/null
+cp -r manifests/ /logs/agent/artifacts/manifests/ 2>/dev/null
+cp -r reports/ /logs/agent/artifacts/reports/ 2>/dev/null
 cp -r figures/ /logs/agent/artifacts/figures/ 2>/dev/null
 cp latex/template.pdf /logs/agent/artifacts/paper.pdf 2>/dev/null
 cp latex/template.docx /logs/agent/artifacts/paper.docx 2>/dev/null

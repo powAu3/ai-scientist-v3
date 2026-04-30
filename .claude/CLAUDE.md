@@ -1,176 +1,95 @@
-# AI Scientist v3 - Customer Review-Backed Paper Mode
+# AI Scientist v3 - Customer Normal Experiment Mode
 
-Autonomous AI research writer for low-compute settings. The agent still produces
-a complete paper, but it replaces the experiment-running phase with a rigorous
-experiment-rationality review and clearly labeled predicted results. The paper
-must be honest: it may present a study proposal, protocol, design analysis,
-feasibility audit, threats-to-validity review, and predicted/expected outcomes,
-but it must not claim that predicted results were actually measured.
-Do not call these values fake. Treat them as protocol-estimated or
-literature-calibrated forecasts with explicit evidence status, assumptions, and
-replacement points for future measured runs.
+Autonomous AI research scientist for normal empirical runs. This branch is for
+machines where data access, credentials, and compute are available. Unlike
+`customer-review-backed-paper-mode`, this branch should run the experiments
+needed by the idea and write the paper from measured artifacts.
 
-This branch contract is `customer-review-backed-paper-mode`. Its sibling
-`customer-normal-experiment-mode` is for real empirical runs when compute and
-data access are available. Do not silently switch this branch into experiment
-execution mode.
+This branch contract is `customer-normal-experiment-mode`. Its sibling
+`customer-review-backed-paper-mode` is the low-compute branch where experiments
+are replaced by review-backed forecasts. Do not silently fall back to forecasted
+final results in this branch unless an experiment is blocked and the blocker is
+recorded in the paper and reviewer artifacts.
 
 ## Workspace
 
-- `experiment_review.md` - Primary evidence artifact: experiment-rationality review
-- `review.json` - Required structured companion with strict gate scores
+- `experiment_review.md` - Pre-run design review and execution plan
+- `review.json` - Structured gate scores and execution decision
 - `preflight_repair.md` - Required when the proposed experiment is not runnable as-is
-- `revised_experiment_protocol.md` - Required repaired protocol when the gate fails
-- `predicted_results/predicted_results.csv` - Required predicted, non-measured data
-- `figures/` - Required figures made from predicted data or review scorecards
+- `revised_experiment_protocol.md` - Repaired protocol when the gate fails
+- `experiment_codebase/` - Code, configs, and lightweight patches used for the run
+- `cloned_repos/` - External reference repositories, when needed
+- `results/` - Measured CSV/JSON results, run logs, checkpoints metadata, and summaries
+- `configs/`, `manifests/`, `reports/` - Environment, data, split, and compute parity records
+- `figures/` - Figures generated from measured results or explicit diagnostic logs
 - `latex/` - ICLR 2025 workshop template; fill `latex/template.tex`
   and export `latex/template.pdf` plus `latex/template.docx`
 - `literature/` - Paper index, notes, citations, and related-work evidence
-- `manuscript_explanation.md` - Separate reader note for provenance, forecast
-  replacement triggers, and the PDF-as-effect-test framing
+- `manuscript_explanation.md` - Companion note for provenance, measured-artifact
+  locations, run limits, and replacement triggers for incomplete experiments
 - `reviews/` - Optional direct review artifacts when not using `submissions/`
 - `submissions/` - Versioned snapshots created by `scripts/submit_for_review.sh`
-- `blank_icbinb_latex/` - Clean LaTeX template copied to `latex/` in Harbor
 - `/search-papers` - Skill for checking related work, baselines, and novelty claims
 
-Package installation should be minimal. Do not download large datasets, train
-models, tune hyperparameters, run benchmark suites, or generate fake results.
-Lightweight shell commands for file inspection, LaTeX compilation, and small
-metadata checks are fine.
-
-API keys, if configured:
-- `S2_API_KEY` - Semantic Scholar, higher rate limits
-- `OPENALEX_API_KEY` - OpenAlex, expanded paper lookup
-- `HF_TOKEN` - HuggingFace metadata lookup only; do not download large datasets
-- `OPENAI_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY` - optional reviewer backends
-
-Reviewer configuration:
-- `REVIEWER_MODE` - `ensemble` (default), `subagent`, or `api`
-- `REVIEWER_TIMEOUT` - Per-reviewer timeout in seconds
-- `CLAUDE_REVIEWER_MODEL` - Optional Claude reviewer model override
+Package installation and dataset/model downloads are allowed when required by
+the idea and compatible with the available machine, credentials, storage, and
+license constraints. Keep downloads targeted and logged. Store experiment code in
+`experiment_codebase/`, and never use untracked local state as evidence.
 
 ## Research Process
 
-Do not run training, evaluation, benchmarks, data downloads, ablations,
-hyperparameter sweeps, or expensive simulations. Small shell commands for
-inspection, plotting from already written prediction CSVs, LaTeX compilation,
-DOCX conversion, and artifact validation are allowed. If code scaffolds or
-cloned baselines are needed for protocol planning, keep them under
-`experiment_codebase/`; do not treat that directory as evidence of executed
-experiments.
-
-1. **Literature Review** - Use `/search-papers` when needed. Identify the most
-   relevant prior work, current baselines, datasets, and whether the proposal has
-   already been answered.
-2. **Experiment Rationality Review** - Write `experiment_review.md`. Assess whether
-   the proposed experiments would answer the hypothesis, including baselines,
-   controls, metrics, data fit, leakage risks, compute feasibility, and threats to
-   validity. Be strict: weak baselines, ungrounded metrics, leakage risk, missing
-   controls, or infeasible compute must lower the gate score.
-3. **Preflight Repair Gate** - If the decision is `Revise Before Running` or
-   `Do Not Run Yet`, stop the downstream paper flow and hand the proposal to the
-   preflight repair flow first. Write `preflight_repair.md` and
-   `revised_experiment_protocol.md`, then base the paper on the repaired protocol.
-   Do not hide the fact that the original proposal failed the gate.
-4. **Predicted Results** - Based on the proposal, repaired protocol, prior
-   literature, expected model
-   behavior, and known benchmark patterns, make simple predictions about likely
-   outcomes. Use qualitative rankings, expected directions, or conservative
-   rough ranges only when justified. Label every number or trend with an evidence
-   status such as `protocol-estimated`, `literature-calibrated forecast`, or
-   `hypothesized`; never call it fake and never present it as measured.
-   Save the prediction dataset to `predicted_results/predicted_results.csv`.
-5. **Figures and Formulas** - Generate the forecast chart and any static
-   protocol/design figures through repo scripts rather than manual plotting. Keep
-   raster figure titles and table titles professional; use captions, surrounding
-   text, the CSV fields, and `manuscript_explanation.md` for provenance instead
-   of visually cluttering the PDF. If `scripts/generate_predicted_figures.py`
-   exists, run
-   `python3 scripts/generate_predicted_figures.py --app-dir .` after updating
-   `predicted_results/predicted_results.csv`; this prevents hand-written plotting
-   snippets from becoming hidden workflow state and gives static figures
-   reproducible regeneration instructions. If
-   `scripts/write_figure_provenance.py` exists, run it so static design figures
-   also have source and regeneration records. Include formal criteria or
-   equations in `latex/template.tex` for the gate score, expected utility,
-   crossover rule, or statistical decision plan.
-6. **Protocol Lock Templates** - When the repaired protocol declares
-   `manifests/*.csv` files and `scripts/create_manifest_templates.py` exists,
-   run `python3 scripts/create_manifest_templates.py --app-dir .`. These
-   zero-row templates do not claim dataset execution; they lock manifest schema,
-   filenames, hashes, environment-lock placeholders, compute-parity report
-   schema, and replacement points for future populated manifests and measured
-   runs.
-7. **Paper Framing** - Write the paper as a protocol/design-analysis paper with
-   predicted results, not a measured empirical-results paper or a method-first
-   detector paper. The title, abstract, introduction, and conclusion must lead
-   with the pre-registered evaluation contract; any detector name is a candidate
-   instantiation to stress-test the protocol. Good framings include:
-   - a study protocol for future execution,
-   - a critical design audit of the proposed experiment,
-   - a feasibility and validity analysis,
-   - a benchmark plan with justified baselines, predicted outcomes, and failure modes.
-8. **Best-of-v2/v3 Synthesis** - Borrow AI Scientist-v2's strengths outside the
-   experiment-running step: real citation collection, top-tier review-form
-   self-critique, figure/caption audit, complete venue-style structure, and
-   explicit comparison to strong baselines. Keep AI Scientist-v3's strengths:
-   lightweight instructions, recoverable artifacts, strict gates, and low
-   orchestration overhead. Do not run experiments.
-9. **Paper Writing** - Fill `latex/template.tex`. Include related work, proposed
-   methodology, review findings, predicted results, recommended experimental
-   protocol, limitations, and evidence needed before making empirical claims.
-   If a visible forecast table is condensed for page fit, the body must say it is
-   a selected subset of `predicted_results/predicted_results.csv`, name the
-   selection rule, and point to the CSV as the authoritative full comparison
-   surface.
-10. **Top-Tier Gap Audit** - Add a section explaining what separates this
-   review-backed paper from a top-A-conference empirical paper. Name the missing
-   measured evidence, ablations, statistical tests, dataset releases, compute
-   disclosure, and reproducibility artifacts. The tone should be strict, not
-   promotional.
-11. **Companion Explanation** - Write `manuscript_explanation.md` alongside the
-   PDF. It should explain that the PDF is a polished manuscript-effect test,
-   name the forecast CSV, summarize evidence-status fields, and list exactly
-   what future measured runs must replace.
-12. **Static Paper-Quality Audit** - When
-   `scripts/audit_paper_quality.py` exists, run
-   `python3 scripts/audit_paper_quality.py --app-dir .` and repair failures
-   before final review. The audit is also part of `scripts/submit_for_review.sh`,
-   so do not treat it as an optional local-only check.
-13. **Compile and Export** - Run `bash scripts/compile_latex.sh latex/` and fix
-   LaTeX or DOCX conversion errors. The compiled `latex/template.pdf` and
-   converted `latex/template.docx` are required.
-14. **Claude Style Pass** - When Claude Code is the active agent, run a concise
-   manuscript style audit before final compilation. Remove AI-writing traces
-   such as generic transitions, repeated workflow self-justification, hype, and
-   vague claims, while preserving the non-execution disclosure. If Claude Code
-   is running on another machine, it must do this pass itself rather than
-   waiting for a human. Prefer
-   `bash scripts/run_claude_style_audit.sh . latex/template.tex reviews/style_audit.md`
-   when the script and Claude CLI are available, then apply the useful edits.
-15. **Reviewer Pipeline** - Run
-   `REVIEWER_MODE=ensemble FINAL_GATE_REVIEWER=1 bash scripts/submit_for_review.sh latex/template.tex .`
-   whenever Claude-compatible reviewer tooling is available. This script must
-   regenerate figures, manifest templates, and `manuscript_explanation.md` when
-   possible, run the static paper-quality audit, ensure DOCX conversion is
-   attempted, archive
-   `reviews/top_tier_review.md`,
-   `reviews/figure_audit.md`, `reviews/area_chair_gate.md`, and create a
-   versioned `submissions/` snapshot. Treat feedback as a paper-quality review,
-   not as evidence that predicted results were measured.
-16. **Final Area-Chair Gate** - Before finishing, route the paper through the
-    strictest available top-A-conference gate. Prefer the Claude `area-chair`
-    subagent via `scripts/submit_for_review.sh`; otherwise create
-    `reviews/area_chair_gate.md` manually from the same rubric. If the gate says
-    `Repair Before Finish` or `Reject`, return to the indicated upstream repair
-    artifact instead of polishing the paper cosmetically. After repair, repeat
-    compile, DOCX export, manuscript explanation generation, reviewer pipeline,
-    and gate until the remaining blockers are gone or explicitly documented as
-    non-recoverable.
+1. **Literature Review** - Use `/search-papers` when needed. Identify current
+   baselines, datasets, metrics, and whether the idea has already been answered.
+2. **Experiment Rationality Review** - Write `experiment_review.md`. Assess
+   whether the proposed experiments answer the hypothesis. Be strict about
+   baselines, controls, dataset splits, metrics, leakage risks, compute budget,
+   statistical rigor, and reproducibility.
+3. **Preflight Repair Gate** - If the protocol is weak, write
+   `preflight_repair.md` and `revised_experiment_protocol.md` before running.
+   Do not spend compute on an experiment the gate says would be misleading.
+4. **Implementation and Execution** - Build or adapt code under
+   `experiment_codebase/`. Run the smallest sufficient experiment suite that can
+   support the paper claims. Capture commands, seeds, configs, package versions,
+   hardware, wall-clock time, and failure logs.
+5. **Measured Results** - Save measured results under `results/`, preferably as
+   `results/measured_results.csv` plus any task-specific JSON summaries. Final
+   manuscript tables must cite these measured artifacts. Forecast or pilot values
+   are allowed only as planning notes, not as final evidence.
+6. **Reproducibility Locks** - Materialize `configs/`, `manifests/`, and
+   `reports/` with data splits, environment details, and compute-parity records.
+   If a run is partial, mark the exact missing rows or skipped baselines.
+7. **Figures and Formulas** - Generate figures from measured CSV/JSON/log
+   artifacts. Static architecture figures are allowed, but result plots must be
+   backed by measured data. Include equations for objectives, evaluation metrics,
+   statistical tests, or stopping rules.
+8. **Paper Writing** - Fill `latex/template.tex` with a full empirical paper:
+   related work, method, experimental setup, results, ablations, limitations,
+   and conclusion. Claims must match the measured evidence actually produced.
+9. **Companion Explanation** - Write `manuscript_explanation.md` with the run
+   provenance: where results live, which baselines ran, which failed or were
+   skipped, and what would be required to extend the evidence.
+10. **Static Paper-Quality Audit** - Run
+    `python3 scripts/audit_paper_quality.py --app-dir .` when available. Repair
+    failures before final review; adapt the manuscript rather than weakening the
+    audit.
+11. **Compile and Export** - Run `bash scripts/compile_latex.sh latex/` and fix
+    LaTeX or DOCX conversion errors. The compiled `latex/template.pdf` and
+    converted `latex/template.docx` are required.
+12. **Claude Style Pass** - When Claude Code is the active agent, run
+    `bash scripts/run_claude_style_audit.sh . latex/template.tex reviews/style_audit.md`
+    when available, then apply only edits that improve clarity without softening
+    empirical limitations.
+13. **Reviewer Pipeline** - Run
+    `REVIEWER_MODE=ensemble FINAL_GATE_REVIEWER=1 bash scripts/submit_for_review.sh latex/template.tex .`
+    when reviewer tooling is available. Treat reviewer output as a gate on
+    scientific quality, reproducibility, citation validity, and claim/evidence fit.
+14. **Final Area-Chair Gate** - If the gate says `Repair Before Finish` or
+    `Reject`, return to the named upstream artifact, rerun the necessary
+    experiment or repair, regenerate paper artifacts, and repeat the gate.
 
 ## Required `experiment_review.md` Structure
 
-Use these headings exactly so the verifier can find them:
+Use these headings exactly:
 
 ```markdown
 # Experiment Rationality Review
@@ -193,23 +112,20 @@ Use these headings exactly so the verifier can find them:
 
 ## Formal Criteria
 
-## Predicted Results And Rationale
+## Execution Plan
 
 ## Preflight Repair Handoff
 
 ## Threats To Validity
 
-## Recommended Changes Before Running
-
 ## Final Recommendation
 ```
 
-Use this decision scale in the final recommendation. Be harsh; do not choose
-`Run` unless the protocol could be executed without design repair.
+Use this decision scale:
 
-- `Run` - The design is mostly sound; only minor clarifications are needed.
+- `Run` - The design is sound enough to execute.
 - `Revise Before Running` - The idea may be worthwhile, but design gaps would
-  undermine the results.
+  undermine the result.
 - `Do Not Run Yet` - The current experiment would likely produce misleading or
   non-actionable evidence.
 
@@ -237,78 +153,34 @@ Scores are 1-5, where 5 is strongest.
 
 ## Paper Requirements
 
-- Use an AI Scientist-v2-style paper organization: title, abstract,
-  introduction, related work, background, method, experimental setup, predicted
-  results, limitations, conclusion, references, and optional appendix.
+- Use an AI Scientist-v2-style empirical paper organization: title, abstract,
+  introduction, related work, background, method, experimental setup, results,
+  ablations, limitations, conclusion, references, and optional appendix.
 - Write a substantive manuscript, not an artifact stub. Aim for roughly 2,000+
   words unless the idea is unusually narrow.
 - Include real citations in `latex/references.bib` and cite them from the paper.
-- Include at least one professional table, at least one generated figure, and at
-  least one equation that supports the review/prediction logic.
-- Include a strong comparative evaluation plan. Cover same-family baselines,
-  stronger detector baselines, crack-specific segmentation baselines, transformer
-  detectors when appropriate, ablations, matched budgets, hard-negative sets,
-  leakage controls, uncertainty estimates, and stop/go criteria.
-- Include a top-tier gap analysis that states why the current manuscript would
-  still fall short of a top-A empirical paper and what evidence would close the
-  gap.
-- Be explicit that no new experiments were run.
-- Include a predicted-results section or table, clearly labeled as predicted,
-  expected, or hypothesized.
-- Include at least one figure from `figures/` and at least one equation/formula.
-- Include or reference the predicted data from `predicted_results/predicted_results.csv`.
-- Make the title, abstract, introduction, and conclusion protocol-first. A named
-  detector can be present only as the candidate instantiation being audited.
-- If a forecast table is condensed, explain the row-selection rationale in the
-  surrounding prose and point readers to the full CSV comparison surface.
-- Include `manuscript_explanation.md` as a separate companion note. The main PDF
-  should look like a serious manuscript, while this note documents provenance,
-  forecast status, and replacement triggers for future real experiments.
-- Export a Word version at `latex/template.docx` using
-  `scripts/convert_latex_to_docx.sh` or the DOCX step inside
-  `scripts/compile_latex.sh`.
-- Predicted numbers are allowed only as rough estimates or illustrative ranges
-  with rationale; never present them as measured results.
-- Do not use the language of fake data. Use evidence-status language:
-  protocol-estimated, literature-calibrated, forecast, planning range, or
-  hypothesized. The values may look like normal experimental tables, but the
-  table captions and text must state that they come from the review-backed
-  estimation chain, not from training.
-- Keep protocol-estimated SOTA comparisons conservative. Do not claim dramatic
-  wins; use modest effect sizes, uncertainty intervals, and failure cases.
-- Do not include fabricated measured accuracy, runtime, error bars, tables, or plots.
-- If a table is useful, it may summarize proposed baselines, planned metrics,
-  expected risks, review criteria, or predicted outcomes, not measured results.
-- The abstract and conclusion must not imply empirical validation.
-- The limitations section must name the missing empirical evidence and explain
-  what future execution would need to establish.
-- Citations must be real and relevant.
+- Include professional measured-result tables, generated figures, and at least
+  one equation or formal metric.
+- Include strong baselines, ablations, matched budgets, leakage controls,
+  uncertainty estimates, and reproducibility details.
+- Be explicit about what ran, what failed, what was skipped, and why.
+- Do not report forecast or pilot values as final measured results.
 - Create `literature/literature_matrix.md` mapping each important citation to
-  the claim it supports. Prefer sources found through `/search-papers`,
-  Semantic Scholar, OpenAlex, arXiv, official proceedings, or publisher pages.
-- After writing the paper, run
-  `python3 scripts/audit_paper_quality.py --app-dir .` when the script is
-  available, then fix any failures before finishing.
-- Add top-tier review artifacts. Prefer `bash scripts/submit_for_review.sh
-  latex/template.tex`, which runs Claude-compatible reviewers and a final
-  `area-chair` gate. At minimum, preserve a top-tier review form, a figure/caption
-  audit, and an area-chair gate under `reviews/` or `submissions/`.
+  the claim it supports.
+- Create `manuscript_explanation.md` as a companion provenance note.
+- Export a Word version at `latex/template.docx`.
+- Add top-tier review artifacts under `reviews/` or `submissions/`.
 
 ## Important Rules
 
-- Do not run training, benchmarking, model evaluation, or ablation experiments.
-- Do not fabricate measured results, figures, tables, citations, or performance
-  numbers. Clearly labeled predicted outcomes are allowed.
-- Do not call protocol-estimated values fake; do not hide their status either.
-- Do not make the PDF visually shout "fake/demo" in every table or figure; make
-  the manuscript polished, then keep the detailed explanation in the companion
-  note and machine-readable CSV.
-- Do not turn the idea into an unrelated research project.
-- Small shell commands for file inspection and LaTeX compilation are fine.
-- If evidence is missing, state what would need to be checked before experiments.
-- If the original plan fails the gate, produce preflight repair artifacts before
-  writing the final paper.
-- Save `experiment_review.md`, `review.json`, `predicted_results/predicted_results.csv`,
-  at least one `figures/*.png`, `manuscript_explanation.md`,
-  `latex/template.tex`, `latex/template.pdf`, and `latex/template.docx`
-  before finishing.
+- Run experiments only when the preflight gate says the protocol is sound enough
+  and the required data/compute/license conditions are available.
+- Never fabricate measured results, figures, tables, citations, logs, or
+  checkpoints.
+- If an experiment cannot be completed, downgrade the claim and record the
+  blocker instead of filling the gap with forecasts.
+- Keep result artifacts machine-readable; final paper tables should be traceable
+  to `results/`, `configs/`, `manifests/`, and `reports/`.
+- Save `experiment_review.md`, `review.json`, measured `results/`, at least one
+  figure, `manuscript_explanation.md`, `latex/template.tex`,
+  `latex/template.pdf`, and `latex/template.docx` before finishing.

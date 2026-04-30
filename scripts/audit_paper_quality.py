@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Static paper-quality audit for review-backed low-compute manuscripts.
+"""Static paper-quality audit for empirical or review-backed manuscripts.
 
 The verifier uses this script as a lightweight guardrail. It does not judge
 scientific truth, but it rejects stub papers that lack the comparison, citation,
-and disclosure structure expected from an AI Scientist-v2-style writeup.
+    and evidence structure expected from an AI Scientist-v2-style writeup.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 
-REQUIRED_SECTIONS = [
+REQUIRED_SECTIONS_REVIEW_BACKED = [
     "Introduction",
     "Related Work",
     "Background",
@@ -24,6 +24,17 @@ REQUIRED_SECTIONS = [
     "Comparative Evaluation Plan",
     "Predicted Results",
     "Top-Tier Gap Analysis",
+    "Limitations",
+    "Conclusion",
+]
+
+REQUIRED_SECTIONS_EMPIRICAL = [
+    "Introduction",
+    "Related Work",
+    "Background",
+    "Method",
+    "Experimental Setup",
+    "Results",
     "Limitations",
     "Conclusion",
 ]
@@ -64,6 +75,19 @@ DISCLOSURE_TERMS = [
     "no model was trained",
     "not executed",
     "hypothesis",
+]
+
+MEASURED_EVIDENCE_TERMS = [
+    "measured",
+    "results",
+    "seed",
+    "baseline",
+    "ablation",
+    "runtime",
+    "dataset",
+    "split",
+    "confidence",
+    "statistical",
 ]
 
 
@@ -122,6 +146,9 @@ def main() -> int:
     tex = read_text(root / "latex" / "template.tex")
     bib = read_text(root / "latex" / "references.bib")
     predicted_csv = root / "predicted_results" / "predicted_results.csv"
+    measured_csv = root / "results" / "measured_results.csv"
+    measured_rows, measured_methods, measured_metrics = csv_stats(measured_csv)
+    empirical_mode = measured_rows > 0
 
     failures: list[str] = []
     warnings: list[str] = []
@@ -130,9 +157,10 @@ def main() -> int:
     if words < 2400:
         failures.append(f"paper is too short for a serious protocol manuscript: {words} words")
 
+    required_sections = REQUIRED_SECTIONS_EMPIRICAL if empirical_mode else REQUIRED_SECTIONS_REVIEW_BACKED
     missing_sections = [
         section
-        for section in REQUIRED_SECTIONS
+        for section in required_sections
         if not re.search(rf"\\section\{{{re.escape(section)}\}}", tex)
     ]
     if missing_sections:
@@ -152,11 +180,11 @@ def main() -> int:
             f"{len(RIGOR_TERMS)} rigor anchors"
         )
 
-    disclosure_count = count_present_terms(tex, DISCLOSURE_TERMS)
+    evidence_terms = MEASURED_EVIDENCE_TERMS if empirical_mode else DISCLOSURE_TERMS
+    disclosure_count = count_present_terms(tex, evidence_terms)
     if disclosure_count < 5:
         failures.append(
-            "prediction-mode disclosure is not repeated enough to prevent "
-            "confusion with measured results"
+            "evidence discussion is too thin to support or qualify the result claims"
         )
 
     entries = bib_entries(bib)
@@ -176,18 +204,27 @@ def main() -> int:
             f"{len(entries) - grounded_entries} bibliography entries lack a venue, DOI, URL, or arXiv field"
         )
 
-    row_count, methods, metrics = csv_stats(predicted_csv)
-    if row_count < 10:
-        failures.append(f"predicted_results.csv has too few comparison rows: {row_count}")
-    if len(methods) < 5:
-        failures.append(f"predicted_results.csv compares too few methods: {len(methods)}")
-    if len(metrics) < 4:
-        failures.append(f"predicted_results.csv covers too few metrics: {len(metrics)}")
+    if empirical_mode:
+        row_count, methods, metrics = measured_rows, measured_methods, measured_metrics
+        if row_count < 3:
+            failures.append(f"measured_results.csv has too few result rows: {row_count}")
+        if len(methods) < 2:
+            failures.append(f"measured_results.csv compares too few methods: {len(methods)}")
+        if len(metrics) < 1:
+            failures.append(f"measured_results.csv covers too few metrics: {len(metrics)}")
+    else:
+        row_count, methods, metrics = csv_stats(predicted_csv)
+        if row_count < 10:
+            failures.append(f"predicted_results.csv has too few comparison rows: {row_count}")
+        if len(methods) < 5:
+            failures.append(f"predicted_results.csv compares too few methods: {len(methods)}")
+        if len(metrics) < 4:
+            failures.append(f"predicted_results.csv covers too few metrics: {len(metrics)}")
 
     if "fake" in tex.lower() or "fabricated" in tex.lower():
         failures.append("paper should not call protocol-estimated values fake; use evidence-status language")
 
-    if "measured" in tex.lower() and not any(
+    if not empirical_mode and "measured" in tex.lower() and not any(
         phrase in tex.lower()
         for phrase in ["not measured", "no measured", "measured result would require"]
     ):
@@ -204,7 +241,7 @@ def main() -> int:
         "OK: paper quality audit "
         f"(words={words}, bib_entries={len(entries)}, cited_refs={len(cite_keys)}, "
         f"comparison_terms={comparison_count}, rigor_terms={rigor_count}, "
-        f"predicted_rows={row_count})"
+        f"{'measured' if empirical_mode else 'predicted'}_rows={row_count})"
     )
     return 0
 

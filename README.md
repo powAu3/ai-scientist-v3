@@ -1,18 +1,18 @@
 # AI Scientist v3
 
-Autonomous AI research agent. This fork is configured for low-compute machines:
-the agent still writes a complete paper, but it replaces experiment execution with
-a strict experiment-rationality gate, preflight repair for weak designs, and
-review-backed forecast results. The PDF is polished like a serious manuscript,
-while `manuscript_explanation.md` carries the detailed evidence-status and
-replacement-trigger explanation.
+Autonomous AI research agent. This branch is configured for normal empirical
+runs: the agent reviews and repairs the experiment plan, runs the required
+experiments when compute/data access are available, and writes a complete paper
+from measured artifacts. The PDF and DOCX are still polished like a serious
+manuscript, while `manuscript_explanation.md` carries provenance, run limits,
+and artifact pointers.
 
 Customer branch names are part of the workflow contract:
 
-- `customer-review-backed-paper-mode`: low-compute mode; no experiments, strict
-  review/repair, forecast data, PDF/DOCX, and area-chair gate.
 - `customer-normal-experiment-mode`: normal empirical mode; run experiments when
   compute and data are available, then write the paper from measured artifacts.
+- `customer-review-backed-paper-mode`: low-compute mode; no experiments, strict
+  review/repair, forecast data, PDF/DOCX, and area-chair gate.
 
 See `docs/customer-branches.md` for the branch-level contract.
 
@@ -47,16 +47,16 @@ Three ways to use AI Scientist v3, from simplest to most production-ready:
 ```bash
 cd ai-scientist-v3
 claude
-> Read ideas/idea_tabulartransformer.json and conduct this research without running experiments. Strictly review the experimental plan, repair it first if the gate fails, then write the paper with formulas, predicted data, figures, and clearly labeled predicted results.
-> Also generate manuscript_explanation.md and latex/template.docx so the PDF can look polished while the forecast chain remains auditable.
+> Read ideas/idea_tabulartransformer.json and conduct this research as a normal empirical run. Strictly review the experimental plan, repair it first if the gate fails, run the sound experiment plan, then write the paper with measured results, formulas, figures, and reproducibility artifacts.
+> Also generate manuscript_explanation.md and latex/template.docx so the measured-result chain remains auditable.
 ```
 
-The `/search-papers` skill and `scripts/submit_for_review.sh` work against the local filesystem. No isolation — artifacts write directly to the repo directory. Good for drafting a paper and checking whether the proposed experiments are worth running later.
+The `/search-papers` skill and `scripts/submit_for_review.sh` work against the local filesystem. No isolation — artifacts write directly to the repo directory. Good for running small experiments directly and iterating on the manuscript.
 
 ### Harbor Mode (Isolated Docker)
 
 ```bash
-./run.sh ideas/idea_tabulartransformer.json                                                # Review-backed paper, no experiment execution
+./run.sh ideas/idea_tabulartransformer.json                                                # Normal empirical paper run
 ./run.sh ideas/idea_tabulartransformer.json --model anthropic/claude-sonnet-4-5-20250929   # Use Sonnet
 ./run.sh ideas/idea_tabulartransformer.json --agent gemini-cli                             # Use Gemini CLI
 ./run.sh ideas/idea_tabulartransformer.json --agent gemini-cli --model google/gemini-3.1-pro-preview  # Gemini + custom model
@@ -66,7 +66,7 @@ The `/search-papers` skill and `scripts/submit_for_review.sh` work against the l
 ./run.sh ideas/idea_tabulartransformer.json --env modal --gpus 1 --artifact-sync-interval 120
 ```
 
-Each run is fully isolated in a Docker container. Artifacts are collected in `jobs/{idea}_{timestamp}/` on the host, including `experiment_review.md`, `review.json`, repair artifacts when needed, `predicted_results/`, `figures/`, `configs/`, `manifests/`, `reports/`, `reviews/`, `submissions/`, `manuscript_explanation.md`, `paper.tex`, `paper.pdf`, and `paper.docx`. Monitor runs with the [viewer](#viewing-job-results).
+Each run is fully isolated in a Docker container. Artifacts are collected in `jobs/{idea}_{timestamp}/` on the host, including `experiment_review.md`, `review.json`, repair artifacts when needed, `experiment_codebase/`, `results/`, `figures/`, `configs/`, `manifests/`, `reports/`, `reviews/`, `submissions/`, `manuscript_explanation.md`, `paper.tex`, `paper.pdf`, and `paper.docx`. Monitor runs with the [viewer](#viewing-job-results).
 
 ### Agent Selection
 
@@ -112,7 +112,7 @@ ai_scientist_v3/
 │           ├── SKILL.md
 │           └── reference.md               # Full API endpoint reference
 ├── harbor-task/
-│   ├── instruction.md.template             # Review-backed paper prompt ({{IDEA_CONTENT}} placeholder)
+│   ├── instruction.md.template             # Normal experiment paper prompt ({{IDEA_CONTENT}} placeholder)
 │   ├── task.toml                           # Container config (CPU, memory, timeout)
 │   ├── environment/
 │   │   ├── Dockerfile.cpu                  # python:3.12-slim + LaTeX + scikit-learn + Claude/Codex/Gemini CLIs
@@ -122,7 +122,7 @@ ai_scientist_v3/
 │   ├── compile_latex.sh                   # pdflatex/tectonic + bibtex + DOCX export
 │   ├── convert_latex_to_docx.sh           # pandoc-based LaTeX to Word conversion
 │   ├── create_manifest_templates.py        # Protocol manifest/environment/compute lock templates
-│   ├── generate_predicted_figures.py       # Canonical predicted-results chart generator
+│   ├── generate_predicted_figures.py       # Optional planning/static figure generator
 │   ├── run_claude_style_audit.sh           # Claude style audit for AI-writing traces
 │   ├── submit_for_review.sh              # Self-review (Claude/Gemini) or external API + versioned snapshot
 │   ├── write_manuscript_explanation.py    # Companion note for PDF/result provenance
@@ -137,15 +137,15 @@ ai_scientist_v3/
 
 ## Harbor Runtime
 
-Each review-backed paper run executes in an isolated Docker container via Harbor:
+Each normal experiment paper run executes in an isolated Docker container via Harbor:
 
 1. `run.sh <idea.json>` generates `instruction.md` from the `.template` with the idea injected
 2. Harbor builds a Docker image from `Dockerfile.cpu` (slim) or `Dockerfile.gpu` (CUDA + PyTorch)
 3. The agent (Claude Code or Gemini CLI) runs inside the container at `/app/`
 4. The agent writes a strict `experiment_review.md`; if the design fails, it creates `preflight_repair.md` and `revised_experiment_protocol.md`
-5. The agent creates predicted data, runs the canonical figure/static-diagram generator, materializes protocol manifest/environment/compute templates, writes formulas and `manuscript_explanation.md`, fills `latex/template.tex` with protocol-first framing, and exports both `latex/template.pdf` and `latex/template.docx`
-6. Before final review, Claude Code can run `scripts/run_claude_style_audit.sh` to remove generic AI-writing traces while keeping forecast provenance clear
-7. `scripts/submit_for_review.sh` refreshes figures, regenerates the companion note, materializes manifest/environment/compute templates, runs the static paper-quality audit, compiles PDF/DOCX, runs the reviewer ensemble plus area-chair gate, and archives stable `reviews/` plus versioned `submissions/`
+5. The agent builds or adapts code in `experiment_codebase/`, runs the sound experiment plan, saves measured `results/`, materializes manifest/environment/compute records, writes formulas and `manuscript_explanation.md`, fills `latex/template.tex`, and exports both `latex/template.pdf` and `latex/template.docx`
+6. Before final review, Claude Code can run `scripts/run_claude_style_audit.sh` to remove generic AI-writing traces while keeping measured-result provenance clear
+7. `scripts/submit_for_review.sh` refreshes figures when applicable, regenerates the companion note, materializes manifest/environment/compute templates, runs the static paper-quality audit, compiles PDF/DOCX, runs the reviewer ensemble plus area-chair gate, and archives stable `reviews/` plus versioned `submissions/`
 8. On completion, `harbor-task/tests/test.sh` verifies review, repair, data, figures, formulas, explanation, paper artifacts, DOCX export, and review gates
 9. Artifacts are collected in `jobs/<job-id>/` on the host
 
@@ -164,7 +164,7 @@ This bakes the previous run's artifacts into the new container and injects a "Re
 After reviewing a run's output, you can send feedback to steer the next run:
 
 ```bash
-./run.sh ideas/idea_tabulartransformer.json --resume-from jobs/2026-02-14__12-10-51/ --feedback "The strict gate is too lenient on baseline tuning. Require nested validation, add a leakage-control checklist, and make the predicted-results figure show uncertainty bands."
+./run.sh ideas/idea_tabulartransformer.json --resume-from jobs/2026-02-14__12-10-51/ --feedback "The strict gate is too lenient on baseline tuning. Require nested validation, add a leakage-control checklist, and add measured ablations for the weakest baseline."
 ```
 
 The `--feedback` text is injected into the instruction as a "Feedback from Previous Run" section. The agent sees it at the start of the session and prioritizes addressing it. Combine with `--resume-from` so the agent builds on existing artifacts rather than starting over.
@@ -216,8 +216,8 @@ If only one or two CLIs are available, the remaining slots are filled with Claud
 REVIEWER_MODE=ensemble FINAL_GATE_REVIEWER=1 bash scripts/submit_for_review.sh latex/template.tex .
 ```
 
-Before the reviewer ensemble starts, the script attempts to regenerate the
-predicted-results figure plus deterministic static protocol figures, refresh figure provenance and `manuscript_explanation.md`, materialize
+Before the reviewer ensemble starts, the script attempts to refresh available
+figures, figure provenance, and `manuscript_explanation.md`, materialize
 manifest/environment/compute templates, run the static paper-quality audit,
 compile the PDF, export DOCX, and run the Claude style audit when available. Set
 `GENERATE_PREDICTED_FIGURES=0`, `GENERATE_MANIFEST_TEMPLATES=0`,
@@ -243,8 +243,8 @@ submissions/v{N}_{timestamp}/reviewer_communications/
 ```
 
 The parent `submissions/v{N}_{timestamp}/` snapshot also includes the paper,
-figures, predicted CSV, literature matrix, manifest templates, environment lock,
-and compute-parity report.
+figures, measured or planning CSVs, literature matrix, manifest templates,
+environment lock, and compute-parity report.
 
 **Error handling:** If a reviewer fails, its section says `[Review not available]` with the error log. The submission proceeds as long as at least 1 of 4 reviewers succeeds. The area-chair gate may still require repair before the run is considered finished.
 
@@ -314,9 +314,9 @@ The agent receives a research idea and autonomously:
 2. Strictly reviews whether the proposed experiments can answer the hypothesis
 3. Checks baselines, controls, datasets, metrics, leakage risks, feasibility, statistical rigor, and threats to validity
 4. Hands failed designs to the preflight repair flow before paper writing
-5. Predicts likely outcomes from the repaired protocol and literature using conservative forecast values
-6. Produces predicted data, figures via `scripts/generate_predicted_figures.py`, formulas, and `manuscript_explanation.md`
-7. Writes a complete protocol-first paper using the LaTeX template with normal paper-style tables and figures; any detector is presented as a candidate instantiation rather than an empirically validated method
+5. Runs the repaired experiment protocol and saves measured artifacts under `results/`
+6. Produces measured-result tables, figures, formulas, and `manuscript_explanation.md`
+7. Writes a complete empirical paper using the LaTeX template with normal paper-style tables and figures
 8. Runs a Claude style audit when Claude Code is available and applies high-signal prose fixes
 9. Exports `latex/template.pdf` and `latex/template.docx`
 10. Submits for ensemble paper-quality review and a final area-chair gate via `scripts/submit_for_review.sh` when credentials are available
