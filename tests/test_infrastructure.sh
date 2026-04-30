@@ -250,11 +250,37 @@ else
     fail "run.sh does NOT support --agent flag"
 fi
 
+if grep -q "RESEARCH_RUN_MODE=review-backed" "$REPO_ROOT/run.sh" 2>/dev/null; then
+    pass "run.sh exports review-backed verifier mode"
+else
+    fail "run.sh does NOT export review-backed verifier mode"
+fi
+
 TEMPLATE="$REPO_ROOT/harbor-task/instruction.md.template"
 if grep -q "(CLAUDE.md)" "$TEMPLATE" 2>/dev/null; then
     fail "instruction.md.template still has agent-specific (CLAUDE.md) reference"
 else
     pass "instruction.md.template is agent-agnostic (no CLAUDE.md parenthetical)"
+fi
+
+# ---------------------------------------------------------------------------
+section "9. Customer workflow verifier contract"
+# ---------------------------------------------------------------------------
+
+VERIFY_SCRIPT="$REPO_ROOT/scripts/verify_customer_workflow.sh"
+if [ -x "$VERIFY_SCRIPT" ]; then
+    pass "verify_customer_workflow.sh exists and is executable"
+else
+    fail "verify_customer_workflow.sh missing or not executable"
+fi
+
+if grep -q "Customer branch contract" "$VERIFY_SCRIPT" && \
+   grep -q "predicted_data_valid" "$VERIFY_SCRIPT" && \
+   grep -q "RESEARCH_RUN_MODE=review-backed" "$VERIFY_SCRIPT" && \
+   grep -q "must not claim that experiments were executed" "$VERIFY_SCRIPT"; then
+    pass "verify_customer_workflow.sh checks branch-specific contracts"
+else
+    fail "verify_customer_workflow.sh does NOT check branch-specific contracts"
 fi
 
 # ---------------------------------------------------------------------------

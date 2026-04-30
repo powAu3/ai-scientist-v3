@@ -16,16 +16,15 @@ Customer branch names are part of the workflow contract:
 
 See `docs/customer-branches.md` for the branch-level contract.
 
-Before committing either customer branch, run the static workflow verifier:
+Before committing this customer branch, run the static workflow verifier:
 
 ```bash
 CUSTOMER_WORKFLOW_MODE=review-backed bash scripts/verify_customer_workflow.sh
-CUSTOMER_WORKFLOW_MODE=normal-experiment bash scripts/verify_customer_workflow.sh
 ```
 
-The normal-experiment command only verifies scripts, tests, and workflow
-contracts on low-compute machines. Full empirical verification still requires a
-hardware-backed run that creates measured artifacts under `results/`.
+This verifier checks the low-compute paper workflow, branch contract, scripts,
+and syntax. It does not run training, benchmarks, dataset downloads, or
+ablations, and it must not be used as evidence that experiments were executed.
 
 ## The Bitter Lesson Applied
 
