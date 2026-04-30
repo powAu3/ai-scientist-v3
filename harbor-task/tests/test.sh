@@ -10,20 +10,39 @@ REVIEW_FILE="$APP_DIR/experiment_review.md"
 REVIEW_JSON="$APP_DIR/review.json"
 REPAIR_FILE="$APP_DIR/preflight_repair.md"
 REVISED_PROTOCOL_FILE="$APP_DIR/revised_experiment_protocol.md"
+EXPERIMENT_CODEBASE="$APP_DIR/experiment_codebase"
 PREDICTED_DATA="$APP_DIR/predicted_results/predicted_results.csv"
 DEPENDENCY_SNAPSHOT="$LOGS_DIR/verifier/requirements.txt"
 PAPER_TEX="$APP_DIR/latex/template.tex"
 PAPER_PDF="$APP_DIR/latex/template.pdf"
+PAPER_DOCX="$APP_DIR/latex/template.docx"
 REFERENCES_FILE="$APP_DIR/latex/references.bib"
+LITERATURE_MATRIX="$APP_DIR/literature/literature_matrix.md"
+LITERATURE_README="$APP_DIR/literature/README.md"
+MANUSCRIPT_EXPLANATION="$APP_DIR/manuscript_explanation.md"
+FIGURE_PROVENANCE_JSON="$APP_DIR/figures/figure_provenance.json"
+FIGURE_PROVENANCE_README="$APP_DIR/figures/README.md"
+REVIEWS_DIR="$APP_DIR/reviews"
+SUBMISSIONS_DIR="$APP_DIR/submissions"
 
 SCORE=0
-TOTAL=8
+TOTAL=13
 
 # Snapshot Python dependencies for reproducibility and resume.
 mkdir -p "$(dirname "$DEPENDENCY_SNAPSHOT")"
 uv pip freeze --system > "$DEPENDENCY_SNAPSHOT" 2>/dev/null || \
     pip freeze > "$DEPENDENCY_SNAPSHOT" 2>/dev/null || \
     true
+
+if [ -f "$APP_DIR/scripts/generate_predicted_figures.py" ]; then
+    python3 "$APP_DIR/scripts/generate_predicted_figures.py" --app-dir "$APP_DIR" >/dev/null 2>&1 || true
+fi
+if [ -f "$APP_DIR/scripts/write_figure_provenance.py" ]; then
+    python3 "$APP_DIR/scripts/write_figure_provenance.py" --app-dir "$APP_DIR" >/dev/null 2>&1 || true
+fi
+if [ -f "$APP_DIR/scripts/create_manifest_templates.py" ]; then
+    python3 "$APP_DIR/scripts/create_manifest_templates.py" --app-dir "$APP_DIR" >/dev/null 2>&1 || true
+fi
 
 # Copy artifacts to both mounted dirs (agent for Docker, verifier as backup for Modal).
 for dest in "$LOGS_DIR/agent/artifacts" "$LOGS_DIR/verifier/artifacts"; do
@@ -32,11 +51,18 @@ for dest in "$LOGS_DIR/agent/artifacts" "$LOGS_DIR/verifier/artifacts"; do
     cp "$REVIEW_JSON" "$dest/review.json" 2>/dev/null || true
     cp "$REPAIR_FILE" "$dest/preflight_repair.md" 2>/dev/null || true
     cp "$REVISED_PROTOCOL_FILE" "$dest/revised_experiment_protocol.md" 2>/dev/null || true
+    cp -r "$EXPERIMENT_CODEBASE" "$dest/experiment_codebase" 2>/dev/null || true
+    cp -r "$APP_DIR/configs/" "$dest/configs/" 2>/dev/null || true
     cp -r "$APP_DIR/predicted_results/" "$dest/predicted_results/" 2>/dev/null || true
+    cp -r "$APP_DIR/manifests/" "$dest/manifests/" 2>/dev/null || true
+    cp -r "$APP_DIR/reports/" "$dest/reports/" 2>/dev/null || true
     cp -r "$APP_DIR/figures/" "$dest/figures/" 2>/dev/null || true
+    cp -r "$APP_DIR/reviews/" "$dest/reviews/" 2>/dev/null || true
     cp "$PAPER_TEX" "$dest/paper.tex" 2>/dev/null || true
     cp "$PAPER_PDF" "$dest/paper.pdf" 2>/dev/null || true
+    cp "$PAPER_DOCX" "$dest/paper.docx" 2>/dev/null || true
     cp "$REFERENCES_FILE" "$dest/references.bib" 2>/dev/null || true
+    cp "$MANUSCRIPT_EXPLANATION" "$dest/manuscript_explanation.md" 2>/dev/null || true
     cp "$DEPENDENCY_SNAPSHOT" "$dest/requirements.txt" 2>/dev/null || true
     cp -r "$APP_DIR/literature/" "$dest/literature/" 2>/dev/null || true
     cp -r "$APP_DIR/submissions/" "$dest/submissions/" 2>/dev/null || true
@@ -54,6 +80,25 @@ paper_declares_prediction_mode() {
 
 paper_has_formula() {
     grep -Eq '\\begin\{equation\}|\\begin\{align\}|\\\[|\\\(|\$\$' "$PAPER_TEX" 2>/dev/null
+}
+
+docx_valid() {
+    python3 - "$PAPER_DOCX" <<'PY' 2>/dev/null
+import sys
+import zipfile
+from pathlib import Path
+
+path = Path(sys.argv[1])
+if not path.exists() or path.stat().st_size < 1000:
+    raise SystemExit(1)
+with zipfile.ZipFile(path) as zf:
+    names = set(zf.namelist())
+    if "[Content_Types].xml" not in names or "word/document.xml" not in names:
+        raise SystemExit(1)
+    document = zf.read("word/document.xml").decode("utf-8", errors="ignore")
+    if "CrackYOLO" not in document and "Review" not in document:
+        raise SystemExit(1)
+PY
 }
 
 paper_references_figure() {
@@ -95,6 +140,45 @@ references_valid() {
     [ -s "$REFERENCES_FILE" ] && \
         [ "$(grep -Ec '^@[A-Za-z]+' "$REFERENCES_FILE" 2>/dev/null || echo 0)" -ge 6 ] && \
         grep -Eq '\\cite(t|p)?\{' "$PAPER_TEX" 2>/dev/null
+}
+
+paper_quality_audit() {
+    python3 "$APP_DIR/scripts/audit_paper_quality.py" --app-dir "$APP_DIR"
+}
+
+literature_matrix_valid() {
+    [ -s "$LITERATURE_MATRIX" ] && \
+        [ -s "$LITERATURE_README" ] && \
+        grep -Eiq "claim|supports|baseline|dataset|method" "$LITERATURE_MATRIX" 2>/dev/null && \
+        [ "$(grep -Eci 'doi:|https?://|arxiv:' "$LITERATURE_MATRIX" 2>/dev/null || echo 0)" -ge 8 ]
+}
+
+manuscript_explanation_valid() {
+    [ -s "$MANUSCRIPT_EXPLANATION" ] && \
+        grep -Eiq "PDF|manuscript-effect|effect test|protocol draft" "$MANUSCRIPT_EXPLANATION" 2>/dev/null && \
+        grep -Eiq "predicted_results|Prediction CSV|forecast CSV" "$MANUSCRIPT_EXPLANATION" 2>/dev/null && \
+        grep -Eiq "evidence status|Evidence Status|replacement trigger|Replacement Trigger" "$MANUSCRIPT_EXPLANATION" 2>/dev/null && \
+        grep -Eiq "not.*measured|training|benchmark" "$MANUSCRIPT_EXPLANATION" 2>/dev/null
+}
+
+review_artifacts_valid() {
+    local direct_ok=1
+    [ -s "$REVIEWS_DIR/top_tier_review.md" ] || direct_ok=0
+    [ -s "$REVIEWS_DIR/figure_audit.md" ] || direct_ok=0
+    [ -s "$REVIEWS_DIR/area_chair_gate.md" ] || direct_ok=0
+    if [ "$direct_ok" -eq 1 ] && \
+       grep -Eiq "soundness|weakness|overall|decision" "$REVIEWS_DIR/top_tier_review.md" 2>/dev/null && \
+       grep -Eiq "figure|caption|visual|table" "$REVIEWS_DIR/figure_audit.md" 2>/dev/null && \
+       grep -Eiq "Gate Decision|Repair Before Finish|Pass|Reject|Area Chair" "$REVIEWS_DIR/area_chair_gate.md" 2>/dev/null; then
+        return 0
+    fi
+
+    local response gate
+    response="$(find "$SUBMISSIONS_DIR" -path '*/reviewer_communications/response.md' -type f 2>/dev/null | sort | tail -1)"
+    gate="$(find "$SUBMISSIONS_DIR" -path '*/reviewer_communications/area_chair_gate.md' -type f 2>/dev/null | sort | tail -1)"
+    [ -s "$response" ] && [ -s "$gate" ] && \
+        grep -Eiq "Figure|Caption|Soundness|Weakness|Overall" "$response" 2>/dev/null && \
+        grep -Eiq "Gate Decision|Repair Before Finish|Pass|Reject|Area Chair" "$gate" 2>/dev/null
 }
 
 figure_file() {
@@ -142,9 +226,18 @@ PY
 }
 
 predicted_data_valid() {
+    if [ -f "$APP_DIR/scripts/generate_predicted_figures.py" ]; then
+        python3 "$APP_DIR/scripts/generate_predicted_figures.py" --app-dir "$APP_DIR" >/dev/null 2>&1 || return 1
+    fi
+    if [ -f "$APP_DIR/scripts/write_figure_provenance.py" ]; then
+        python3 "$APP_DIR/scripts/write_figure_provenance.py" --app-dir "$APP_DIR" >/dev/null 2>&1 || return 1
+    fi
     [ -s "$PREDICTED_DATA" ] && \
         [ "$(wc -l < "$PREDICTED_DATA" 2>/dev/null || echo 0)" -ge 2 ] && \
-        grep -Eiq "predicted|expected|hypothesized|assumption|rationale" "$PREDICTED_DATA" 2>/dev/null
+        grep -Eiq "predicted|expected|hypothesized|assumption|rationale" "$PREDICTED_DATA" 2>/dev/null && \
+        [ -s "$FIGURE_PROVENANCE_JSON" ] && \
+        [ -s "$FIGURE_PROVENANCE_README" ] && \
+        grep -Eiq "source_kind|regeneration|planning_forecast" "$FIGURE_PROVENANCE_JSON" 2>/dev/null
 }
 
 if [ -s "$REVIEW_FILE" ] && \
@@ -205,6 +298,13 @@ else
     echo "MISSING: paper source, compiled PDF, prediction disclosure, or formula"
 fi
 
+if docx_valid; then
+    SCORE=$((SCORE + 1))
+    echo "OK: Word DOCX export"
+else
+    echo "MISSING: valid Word DOCX export"
+fi
+
 if paper_has_v2_structure; then
     SCORE=$((SCORE + 1))
     echo "OK: substantive AI Scientist-v2-style paper structure and table"
@@ -217,6 +317,34 @@ if references_valid; then
     echo "OK: real bibliography file and in-text citations"
 else
     echo "MISSING: bibliography file with at least six entries or in-text citations"
+fi
+
+if paper_quality_audit; then
+    SCORE=$((SCORE + 1))
+    echo "OK: top-tier paper quality audit"
+else
+    echo "MISSING: top-tier paper quality audit requirements"
+fi
+
+if literature_matrix_valid; then
+    SCORE=$((SCORE + 1))
+    echo "OK: real literature matrix"
+else
+    echo "MISSING: real literature matrix with citation-to-claim mapping"
+fi
+
+if manuscript_explanation_valid; then
+    SCORE=$((SCORE + 1))
+    echo "OK: separate manuscript companion explanation"
+else
+    echo "MISSING: manuscript companion explanation"
+fi
+
+if review_artifacts_valid; then
+    SCORE=$((SCORE + 1))
+    echo "OK: top-tier review, figure audit, and area-chair gate artifacts"
+else
+    echo "MISSING: top-tier review, figure audit, or area-chair gate artifacts"
 fi
 
 echo ""

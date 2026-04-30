@@ -3,11 +3,11 @@ FROM pytorch/pytorch:2.10.0-cuda13.0-cudnn9-runtime
 # Avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# System deps: LaTeX, biber, chktex, git, curl, jq
+# System deps: LaTeX, biber, chktex, git, curl, jq, pandoc
 # (Python 3.12 + PyTorch + CUDA are already in the base image)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-latex-base texlive-latex-recommended texlive-fonts-recommended \
-    texlive-latex-extra biber chktex curl jq git git-lfs poppler-utils && \
+    texlive-latex-extra biber chktex curl jq git git-lfs poppler-utils pandoc && \
     git lfs install && \
     rm -rf /var/lib/apt/lists/*
 
@@ -43,9 +43,11 @@ COPY .codex_auth/ /app/.codex_auth/
 RUN mkdir -p /app/experiment_codebase/baselines /app/experiment_codebase/main \
     /app/experiment_codebase/ablations /app/experiment_codebase/plotting \
     /app/experiment_codebase/cloned_repos \
-    /app/figures /app/latex /app/literature /app/submissions && \
+    /app/figures /app/latex /app/literature /app/reviews /app/submissions && \
     cp -r /app/blank_icbinb_latex/* /app/latex/ && \
-    chmod +x /app/scripts/submit_for_review.sh
+    chmod +x /app/scripts/submit_for_review.sh /app/scripts/convert_latex_to_docx.sh \
+      /app/scripts/generate_predicted_figures.py /app/scripts/create_manifest_templates.py \
+      /app/scripts/write_figure_provenance.py /app/scripts/run_claude_style_audit.sh
 
 # Pre-initialize git repo so agent starts with version control ready.
 # Remote + branch are configured at runtime by the patched agent wrapper.
@@ -63,8 +65,11 @@ RUN set +e; \
         cp -r /app/prev_artifacts/figures/* /app/figures/ 2>/dev/null; \
         cp /app/prev_artifacts/paper.tex /app/latex/template.tex 2>/dev/null; \
         cp /app/prev_artifacts/paper.pdf /app/latex/template.pdf 2>/dev/null; \
+        cp /app/prev_artifacts/paper.docx /app/latex/template.docx 2>/dev/null; \
+        cp /app/prev_artifacts/manuscript_explanation.md /app/manuscript_explanation.md 2>/dev/null; \
         cp /app/prev_artifacts/review.json /app/review.json 2>/dev/null; \
         cp -r /app/prev_artifacts/literature/* /app/literature/ 2>/dev/null; \
+        cp -r /app/prev_artifacts/reviews/* /app/reviews/ 2>/dev/null; \
         cp -r /app/prev_artifacts/submissions/* /app/submissions/ 2>/dev/null; \
         # Restore dependencies from previous run's snapshot
         if [ -f /app/prev_artifacts/requirements.txt ]; then \

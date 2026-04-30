@@ -3,7 +3,9 @@
 Autonomous AI research agent. This fork is configured for low-compute machines:
 the agent still writes a complete paper, but it replaces experiment execution with
 a strict experiment-rationality gate, preflight repair for weak designs, and
-clearly labeled predicted results.
+review-backed forecast results. The PDF is polished like a serious manuscript,
+while `manuscript_explanation.md` carries the detailed evidence-status and
+replacement-trigger explanation.
 
 ## The Bitter Lesson Applied
 
@@ -37,6 +39,7 @@ Three ways to use AI Scientist v3, from simplest to most production-ready:
 cd ai-scientist-v3
 claude
 > Read ideas/idea_tabulartransformer.json and conduct this research without running experiments. Strictly review the experimental plan, repair it first if the gate fails, then write the paper with formulas, predicted data, figures, and clearly labeled predicted results.
+> Also generate manuscript_explanation.md and latex/template.docx so the PDF can look polished while the forecast chain remains auditable.
 ```
 
 The `/search-papers` skill and `scripts/submit_for_review.sh` work against the local filesystem. No isolation — artifacts write directly to the repo directory. Good for drafting a paper and checking whether the proposed experiments are worth running later.
@@ -54,7 +57,7 @@ The `/search-papers` skill and `scripts/submit_for_review.sh` work against the l
 ./run.sh ideas/idea_tabulartransformer.json --env modal --gpus 1 --artifact-sync-interval 120
 ```
 
-Each run is fully isolated in a Docker container. Artifacts are collected in `jobs/{idea}_{timestamp}/` on the host, including `experiment_review.md`, `review.json`, repair artifacts when needed, `predicted_results/`, `figures/`, `paper.tex`, and `paper.pdf`. Monitor runs with the [viewer](#viewing-job-results).
+Each run is fully isolated in a Docker container. Artifacts are collected in `jobs/{idea}_{timestamp}/` on the host, including `experiment_review.md`, `review.json`, repair artifacts when needed, `predicted_results/`, `figures/`, `configs/`, `manifests/`, `reports/`, `reviews/`, `submissions/`, `manuscript_explanation.md`, `paper.tex`, `paper.pdf`, and `paper.docx`. Monitor runs with the [viewer](#viewing-job-results).
 
 ### Agent Selection
 
@@ -92,7 +95,9 @@ ai_scientist_v3/
 │   ├── agents/
 │   │   ├── reviewer.md                    # Comprehensive reviewer (NeurIPS format)
 │   │   ├── idea-reviewer.md               # Idea & literature reviewer (novelty, SOTA)
-│   │   └── code-reviewer.md               # Code quality reviewer (reproducibility, correctness)
+│   │   ├── code-reviewer.md               # Protocol/reproducibility reviewer
+│   │   ├── figure-reviewer.md             # Figure/table/caption auditor
+│   │   └── area-chair.md                  # Final strict top-A gate
 │   └── skills/
 │       └── search-papers/                  # /search-papers — 3-API stack (S2, OpenReview, CrossRef)
 │           ├── SKILL.md
@@ -105,8 +110,14 @@ ai_scientist_v3/
 │   │   └── Dockerfile.gpu                  # pytorch + CUDA + LaTeX + scikit-learn + Claude/Codex/Gemini CLIs
 │   └── tests/test.sh                       # Verifier (checks artifacts, produces reward)
 ├── scripts/
-│   ├── compile_latex.sh                   # pdflatex + bibtex + chktex
+│   ├── compile_latex.sh                   # pdflatex/tectonic + bibtex + DOCX export
+│   ├── convert_latex_to_docx.sh           # pandoc-based LaTeX to Word conversion
+│   ├── create_manifest_templates.py        # Protocol manifest/environment/compute lock templates
+│   ├── generate_predicted_figures.py       # Canonical predicted-results chart generator
+│   ├── run_claude_style_audit.sh           # Claude style audit for AI-writing traces
 │   ├── submit_for_review.sh              # Self-review (Claude/Gemini) or external API + versioned snapshot
+│   ├── write_manuscript_explanation.py    # Companion note for PDF/result provenance
+│   ├── write_figure_provenance.py          # Figure source/regeneration records
 │   ├── push_to_gitlab.py                  # Post-run: sanitize + push artifacts to GitLab
 │   └── gitlab_setup.py                   # Create GitLab repos per idea (optional)
 ├── viewer/                                  # Web dashboard (local or GitLab mode)
@@ -123,9 +134,11 @@ Each review-backed paper run executes in an isolated Docker container via Harbor
 2. Harbor builds a Docker image from `Dockerfile.cpu` (slim) or `Dockerfile.gpu` (CUDA + PyTorch)
 3. The agent (Claude Code or Gemini CLI) runs inside the container at `/app/`
 4. The agent writes a strict `experiment_review.md`; if the design fails, it creates `preflight_repair.md` and `revised_experiment_protocol.md`
-5. The agent creates predicted data, figures, formulas, fills `latex/template.tex`, and compiles `latex/template.pdf`
-6. On completion, `harbor-task/tests/test.sh` verifies review, repair, data, figures, formulas, and paper artifacts
-7. Artifacts are collected in `jobs/<job-id>/` on the host
+5. The agent creates predicted data, runs the canonical figure/static-diagram generator, materializes protocol manifest/environment/compute templates, writes formulas and `manuscript_explanation.md`, fills `latex/template.tex` with protocol-first framing, and exports both `latex/template.pdf` and `latex/template.docx`
+6. Before final review, Claude Code can run `scripts/run_claude_style_audit.sh` to remove generic AI-writing traces while keeping forecast provenance clear
+7. `scripts/submit_for_review.sh` refreshes figures, regenerates the companion note, materializes manifest/environment/compute templates, runs the static paper-quality audit, compiles PDF/DOCX, runs the reviewer ensemble plus area-chair gate, and archives stable `reviews/` plus versioned `submissions/`
+8. On completion, `harbor-task/tests/test.sh` verifies review, repair, data, figures, formulas, explanation, paper artifacts, DOCX export, and review gates
+9. Artifacts are collected in `jobs/<job-id>/` on the host
 
 Source templates are never modified — `run.sh` generates `instruction.md` and `Dockerfile` at runtime and cleans them up on exit.
 
@@ -153,13 +166,13 @@ The `--feedback` text is injected into the instruction as a "Feedback from Previ
 
 | Mode | Env Var | What it does |
 |------|---------|-------------|
-| **Subagent** (default) | `REVIEWER_MODE=subagent` | Single comprehensive reviewer using the driving agent's CLI |
-| **Ensemble** | `REVIEWER_MODE=ensemble` | 3 diversified reviewers in parallel, each with a different perspective |
+| **Subagent** | `REVIEWER_MODE=subagent` | Single comprehensive reviewer using the driving agent's CLI |
+| **Ensemble** (default) | `REVIEWER_MODE=ensemble` | 4 diversified reviewers in parallel, followed by an area-chair gate |
 | **API** | `REVIEWER_MODE=api` | External reviewer API (legacy) |
 
 #### Subagent Mode
 
-The default. Launches one reviewer using whichever CLI is available (Claude Code or Gemini CLI). Produces a single structured review following NeurIPS format defined in `.claude/agents/reviewer.md`.
+Launches one reviewer using whichever CLI is available (Claude Code or Gemini CLI). Produces a single structured review following NeurIPS format defined in `.claude/agents/reviewer.md`.
 
 ```bash
 bash scripts/submit_for_review.sh latex/template.tex          # auto-detects CLI
@@ -168,13 +181,17 @@ AGENT_TYPE=gemini-cli bash scripts/submit_for_review.sh latex/template.tex  # fo
 
 #### Ensemble Mode
 
-Launches **3 specialized reviewers in parallel**, each with a different focus:
+Launches **4 specialized reviewers in parallel**, each with a different focus:
 
 | Reviewer | Agent File | Focus |
 |----------|-----------|-------|
 | Comprehensive | `.claude/agents/reviewer.md` | Full NeurIPS-style review: paper, code, figures, literature, process compliance |
 | Idea & Literature | `.claude/agents/idea-reviewer.md` | Novelty assessment, impact analysis, SOTA positioning, missing citations |
 | Code Quality | `.claude/agents/code-reviewer.md` | Reproducibility, scientific correctness, code organization, results integrity |
+| Figure & Caption | `.claude/agents/figure-reviewer.md` | VLM-style audit of figures, tables, captions, and provenance |
+
+After the ensemble, `submit_for_review.sh` runs `.claude/agents/area-chair.md`
+as a final top-A-conference gate by default (`FINAL_GATE_REVIEWER=1`).
 
 Each reviewer is randomly assigned to an available CLI backend:
 
@@ -187,23 +204,40 @@ Each reviewer is randomly assigned to an available CLI backend:
 If only one or two CLIs are available, the remaining slots are filled with Claude. The assignment is shuffled so no reviewer always gets the same CLI.
 
 ```bash
-REVIEWER_MODE=ensemble bash scripts/submit_for_review.sh latex/template.tex
+REVIEWER_MODE=ensemble FINAL_GATE_REVIEWER=1 bash scripts/submit_for_review.sh latex/template.tex .
 ```
 
-The output `response.md` contains three `## Review (...)` sections, one per reviewer, with the CLI backend noted. Individual review files and stderr logs are preserved in the version snapshot:
+Before the reviewer ensemble starts, the script attempts to regenerate the
+predicted-results figure plus deterministic static protocol figures, refresh figure provenance and `manuscript_explanation.md`, materialize
+manifest/environment/compute templates, run the static paper-quality audit,
+compile the PDF, export DOCX, and run the Claude style audit when available. Set
+`GENERATE_PREDICTED_FIGURES=0`, `GENERATE_MANIFEST_TEMPLATES=0`,
+`COMPILE_BEFORE_REVIEW=0`, or `RUN_STYLE_AUDIT=0` only for debugging. Set
+`RUN_PAPER_QUALITY_AUDIT=0` only for early drafts that are not being submitted
+to the gate.
+
+The output `response.md` contains four `## Review (...)` sections, one per reviewer, with the CLI backend noted. Individual review files, stderr logs, the companion explanation, Word export, evidence bundle, and the area-chair decision are preserved in the version snapshot:
 
 ```
 submissions/v{N}_{timestamp}/reviewer_communications/
-├── response.md                  # All 3 reviews concatenated
+├── response.md                  # All 4 reviews concatenated
 ├── reviewer_response_1.txt      # Raw output from Reviewer 1
 ├── reviewer_response_2.txt      # Raw output from Reviewer 2
 ├── reviewer_response_3.txt      # Raw output from Reviewer 3
+├── reviewer_response_4.txt      # Raw output from Reviewer 4
+├── style_audit.md               # Claude manuscript style audit, if available
+├── paper_quality_audit.log       # Static manuscript/citation/data audit
+├── area_chair_gate.md           # Final strict gate
 ├── ensemble_assignment.json     # {"reviewer": "claude", "idea-reviewer": "codex", ...}
-├── reviewer_stderr_{1,2,3}.log  # Per-reviewer stderr
+├── reviewer_stderr_{1,2,3,4}.log  # Per-reviewer stderr
 └── trace/                       # Claude session files (if any)
 ```
 
-**Error handling:** If a reviewer fails, its section says `[Review not available]` with the error log. The submission proceeds as long as at least 1 of 3 reviewers succeeds.
+The parent `submissions/v{N}_{timestamp}/` snapshot also includes the paper,
+figures, predicted CSV, literature matrix, manifest templates, environment lock,
+and compute-parity report.
+
+**Error handling:** If a reviewer fails, its section says `[Review not available]` with the error log. The submission proceeds as long as at least 1 of 4 reviewers succeeds. The area-chair gate may still require repair before the run is considered finished.
 
 ### GPU Support
 
@@ -242,7 +276,7 @@ Without `GITLAB_KEY`, everything works as before — no git, no push, no GitLab 
 
 ### Viewing Job Results
 
-A web viewer shows job status, token usage, cost, trajectories (every tool call), paper PDFs, figures, and the full reviewer conversation per submission version.
+A web viewer shows job status, token usage, cost, trajectories (every tool call), paper PDFs, Word exports, manuscript explanations, figures, and the full reviewer conversation per submission version.
 
 **Local mode** — reads completed jobs from `jobs/` on disk:
 
@@ -271,11 +305,12 @@ The agent receives a research idea and autonomously:
 2. Strictly reviews whether the proposed experiments can answer the hypothesis
 3. Checks baselines, controls, datasets, metrics, leakage risks, feasibility, statistical rigor, and threats to validity
 4. Hands failed designs to the preflight repair flow before paper writing
-5. Predicts likely outcomes from the repaired protocol and literature, clearly labeling them as predicted rather than measured
-6. Produces predicted data, figures, and formulas to support the paper
-7. Writes a complete paper using the LaTeX template
-8. Compiles the paper to `latex/template.pdf`
-9. Optionally submits for paper-quality review via `scripts/submit_for_review.sh`
+5. Predicts likely outcomes from the repaired protocol and literature using conservative forecast values
+6. Produces predicted data, figures via `scripts/generate_predicted_figures.py`, formulas, and `manuscript_explanation.md`
+7. Writes a complete protocol-first paper using the LaTeX template with normal paper-style tables and figures; any detector is presented as a candidate instantiation rather than an empirically validated method
+8. Runs a Claude style audit when Claude Code is available and applies high-signal prose fixes
+9. Exports `latex/template.pdf` and `latex/template.docx`
+10. Submits for ensemble paper-quality review and a final area-chair gate via `scripts/submit_for_review.sh` when credentials are available
 
 No hardcoded stages. No tree data structure. No Python orchestration. The agent decides what to do and when, using its own scientific judgment.
 
@@ -284,13 +319,14 @@ No hardcoded stages. No tree data structure. No Python orchestration. The agent 
 - `ANTHROPIC_API_KEY` — Required for Claude Code agent
 - `GEMINI_API_KEY` or `GOOGLE_API_KEY` — Required for Gemini CLI agent
 - `OPENAI_API_KEY` or `CODEX_API_KEY` (optional) — Enables Codex CLI in ensemble review mode
-- `REVIEWER_MODE` (optional) — `subagent` (default), `ensemble`, or `api`
+- `REVIEWER_MODE` (optional) — `ensemble` (default), `subagent`, or `api`
 - `REVIEWER_TIMEOUT` (optional) — Per-reviewer timeout in seconds (default: `1800` = 30 min)
 - `CODEX_MODEL` (optional) — Override Codex CLI model in ensemble mode
 - `GEMINI_MODEL` (optional) — Override Gemini CLI model in ensemble mode (default: `auto`)
 - `S2_API_KEY` (optional) — Semantic Scholar API key for higher rate limits
 - `GITLAB_KEY` (optional) — GitLab personal access token for cross-run agent memory
-- `pdflatex` — Required for paper compilation (MacTeX: `/Library/TeX/texbin/pdflatex`)
+- `pdflatex` or `tectonic` — Required for PDF compilation
+- `pandoc` — Required for LaTeX to Word DOCX conversion
 
 ## Documentation
 

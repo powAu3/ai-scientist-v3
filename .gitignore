@@ -15,6 +15,7 @@ session_analysis/*
 *.eps
 jobs/
 logs/
+.omx/
 
 # Generated at runtime by run.sh (source templates are .template / .cpu / .gpu)
 harbor-task/instruction.md
@@ -42,10 +43,28 @@ data/
 
 # Experiment artifacts (when running locally without Harbor)
 experiment_codebase/
+configs/
 figures/
 latex/
 literature/
+manifests/
+predicted_results/
+reports/
+reviews/
+submissions/
+experiment_review.md
+preflight_repair.md
+revised_experiment_protocol.md
 review.json
+manuscript_explanation.md
+area_chair_gate.md
+reviewer_raw_response.json
+reviewer_raw_response.md
+reviewer_response_*.txt
+reviewer_trace/
+findings.md
+progress.md
+task_plan.md
 *.npy
 
 # Local experiment scratch (not part of the automated pipeline)

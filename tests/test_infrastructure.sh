@@ -146,6 +146,29 @@ if grep -q '"experiment_codebase"' "$PATCHED" 2>/dev/null; then
 else
     fail "patched_claude_code.py does NOT sync experiment_codebase"
 fi
+if grep -q "paper.docx" "$PATCHED" 2>/dev/null && \
+   grep -q "manuscript_explanation.md" "$PATCHED" 2>/dev/null && \
+   grep -q '"configs"' "$PATCHED" 2>/dev/null && \
+   grep -q '"manifests"' "$PATCHED" 2>/dev/null && \
+   grep -q '"reports"' "$PATCHED" 2>/dev/null && \
+   grep -q '"reviews"' "$PATCHED" 2>/dev/null; then
+    pass "patched_claude_code.py syncs DOCX, explanation, protocol locks, and reviews"
+else
+    fail "patched_claude_code.py does NOT sync DOCX, explanation, protocol locks, and reviews"
+fi
+
+PATCHED_CODEX="$REPO_ROOT/local_harbor_agents/patched_codex.py"
+if grep -q '"experiment_codebase"' "$PATCHED_CODEX" 2>/dev/null && \
+   grep -q "paper.docx" "$PATCHED_CODEX" 2>/dev/null && \
+   grep -q "manuscript_explanation.md" "$PATCHED_CODEX" 2>/dev/null && \
+   grep -q '"configs"' "$PATCHED_CODEX" 2>/dev/null && \
+   grep -q '"manifests"' "$PATCHED_CODEX" 2>/dev/null && \
+   grep -q '"reports"' "$PATCHED_CODEX" 2>/dev/null && \
+   grep -q '"reviews"' "$PATCHED_CODEX" 2>/dev/null; then
+    pass "patched_codex.py syncs experiment_codebase, DOCX, explanation, protocol locks, and reviews"
+else
+    fail "patched_codex.py does NOT sync experiment_codebase, DOCX, explanation, protocol locks, and reviews"
+fi
 
 TEST_SH="$REPO_ROOT/harbor-task/tests/test.sh"
 if grep -q "experiment_codebase" "$TEST_SH" 2>/dev/null; then
@@ -153,12 +176,31 @@ if grep -q "experiment_codebase" "$TEST_SH" 2>/dev/null; then
 else
     fail "test.sh does NOT check experiment_codebase"
 fi
+if grep -q "docx_valid" "$TEST_SH" 2>/dev/null && \
+   grep -q "paper_quality_audit" "$TEST_SH" 2>/dev/null && \
+   grep -q "write_figure_provenance" "$TEST_SH" 2>/dev/null && \
+   grep -q "review_artifacts_valid" "$TEST_SH" 2>/dev/null; then
+    pass "test.sh checks DOCX, paper-quality audit, figure provenance, and review artifacts"
+else
+    fail "test.sh does NOT check DOCX, paper-quality audit, figure provenance, and review artifacts"
+fi
 
 SUBMIT="$REPO_ROOT/scripts/submit_for_review.sh"
 if grep -q 'experiment_codebase' "$SUBMIT" 2>/dev/null; then
     pass "submit_for_review.sh copies experiment_codebase"
 else
     fail "submit_for_review.sh does NOT copy experiment_codebase"
+fi
+if grep -q "RUN_PAPER_QUALITY_AUDIT" "$SUBMIT" 2>/dev/null && \
+   grep -q "GENERATE_MANIFEST_TEMPLATES" "$SUBMIT" 2>/dev/null && \
+   grep -q "write_figure_provenance" "$SUBMIT" 2>/dev/null && \
+   grep -q "predicted_results literature configs manifests reports" "$SUBMIT" 2>/dev/null && \
+   grep -q "COMPILE_BEFORE_REVIEW" "$SUBMIT" 2>/dev/null && \
+   grep -q "current_review_record.md" "$SUBMIT" 2>/dev/null && \
+   grep -q "paper.docx" "$SUBMIT" 2>/dev/null; then
+    pass "submit_for_review.sh owns manifest templates, figure provenance, evidence snapshots, quality audit, compile gate, current review record, and DOCX snapshot"
+else
+    fail "submit_for_review.sh missing manifest/figure-provenance/evidence-snapshot/quality/compile/review-record/DOCX workflow"
 fi
 
 # ---------------------------------------------------------------------------
@@ -177,6 +219,16 @@ if grep -q '"experiment_codebase"' "$PATCHED_GEMINI" 2>/dev/null; then
     pass "patched_gemini_cli.py syncs experiment_codebase"
 else
     fail "patched_gemini_cli.py does NOT sync experiment_codebase"
+fi
+if grep -q "paper.docx" "$PATCHED_GEMINI" 2>/dev/null && \
+   grep -q "manuscript_explanation.md" "$PATCHED_GEMINI" 2>/dev/null && \
+   grep -q '"configs"' "$PATCHED_GEMINI" 2>/dev/null && \
+   grep -q '"manifests"' "$PATCHED_GEMINI" 2>/dev/null && \
+   grep -q '"reports"' "$PATCHED_GEMINI" 2>/dev/null && \
+   grep -q '"reviews"' "$PATCHED_GEMINI" 2>/dev/null; then
+    pass "patched_gemini_cli.py syncs DOCX, explanation, protocol locks, and reviews"
+else
+    fail "patched_gemini_cli.py does NOT sync DOCX, explanation, protocol locks, and reviews"
 fi
 
 if grep -q 'gemini_sessions' "$PATCHED_GEMINI" 2>/dev/null; then

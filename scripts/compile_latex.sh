@@ -11,6 +11,7 @@ set -uo pipefail
 
 LATEX_DIR="${1:-.}"
 TEX_FILE="template.tex"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Find pdflatex (macOS TeX Live is often not on PATH)
 PDFLATEX=$(command -v pdflatex 2>/dev/null || echo "/Library/TeX/texbin/pdflatex")
@@ -83,6 +84,11 @@ except:
   echo ""
   echo "=== SUCCESS ==="
   echo "Output: $PDF_FILE ($PDF_SIZE bytes, $PDF_PAGES pages)"
+  CONVERT_SCRIPT="$SCRIPT_DIR/convert_latex_to_docx.sh"
+  if [[ -x "$CONVERT_SCRIPT" || -f "$CONVERT_SCRIPT" ]]; then
+    echo ""
+    bash "$CONVERT_SCRIPT" "."
+  fi
 else
   echo ""
   echo "=== FAILED ==="

@@ -123,10 +123,31 @@ export function SubmissionsTab({ jobId, submissions }: Props) {
                   Open in new tab
                   <ExternalLink className="h-3 w-3" />
                 </a>
+                {sub.docx_url && (
+                  <a
+                    href={sub.docx_url}
+                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  >
+                    Word DOCX
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
               </div>
             </CardHeader>
             <CardContent>
               <PdfViewer url={pdfUrl} />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Review */}
+        {sub?.manuscript_explanation_markdown && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Manuscript Explanation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MarkdownRenderer content={sub.manuscript_explanation_markdown} />
             </CardContent>
           </Card>
         )}

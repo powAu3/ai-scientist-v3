@@ -80,7 +80,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--help)
             echo "Usage: ./run.sh <idea.json> [OPTIONS]"
-            echo "Runs a review-backed paper task: no experiment execution, with predicted results clearly labeled."
+            echo "Runs a review-backed paper task: no experiment execution, polished PDF, and separate evidence explanation."
             echo ""
             echo "Arguments:"
             echo "  idea.json                  Path to research idea JSON file"
@@ -385,7 +385,7 @@ if [[ -n "$GITLAB_RESUME_BRANCH" ]]; then
 
 This run continues from a previous session. Your workspace has been initialized
 from the previous run's GitLab branch (\`$GITLAB_RESUME_BRANCH\`) — all code,
-results, figures, paper drafts, and submissions are already in place.
+results, figures, paper/PDF/Word drafts, manuscript explanations, and submissions are already in place.
 
 Review what's already done before continuing. Focus on completing the missing
 pieces rather than redoing work. Check the quality of existing artifacts and
@@ -401,8 +401,12 @@ elif [[ -n "$PREV_ARTIFACTS" ]]; then
         EXISTING="$EXISTING\n- figures/ ($(ls "$PREV_ARTIFACTS/figures/" 2>/dev/null | wc -l | tr -d ' ') files)"
     [[ -d "$PREV_ARTIFACTS/literature" ]] && \
         EXISTING="$EXISTING\n- literature/ ($(ls "$PREV_ARTIFACTS/literature/" 2>/dev/null | wc -l | tr -d ' ') files)"
+    [[ -d "$PREV_ARTIFACTS/reviews" ]] && \
+        EXISTING="$EXISTING\n- reviews/ ($(ls "$PREV_ARTIFACTS/reviews/" 2>/dev/null | wc -l | tr -d ' ') files)"
     [[ -f "$PREV_ARTIFACTS/paper.pdf" ]] && EXISTING="$EXISTING\n- paper.pdf"
+    [[ -f "$PREV_ARTIFACTS/paper.docx" ]] && EXISTING="$EXISTING\n- paper.docx"
     [[ -f "$PREV_ARTIFACTS/paper.tex" ]] && EXISTING="$EXISTING\n- paper.tex"
+    [[ -f "$PREV_ARTIFACTS/manuscript_explanation.md" ]] && EXISTING="$EXISTING\n- manuscript_explanation.md"
     [[ -f "$PREV_ARTIFACTS/review.json" ]] && EXISTING="$EXISTING\n- review.json"
     [[ -d "$PREV_ARTIFACTS/submissions" ]] && \
         EXISTING="$EXISTING\n- submissions/ ($(ls "$PREV_ARTIFACTS/submissions/" 2>/dev/null | grep -c '^v' || true) versions)"

@@ -118,6 +118,8 @@ def generate_metadata(
     branch: str,
     figures: List[str],
     has_paper: bool,
+    has_docx: bool,
+    has_manuscript_explanation: bool,
     submission_count: int,
     cost_data: Optional[dict] = None,
 ) -> dict:
@@ -157,6 +159,8 @@ def generate_metadata(
         "branch": branch,
         "submission_count": submission_count,
         "has_paper_pdf": has_paper,
+        "has_paper_docx": has_docx,
+        "has_manuscript_explanation": has_manuscript_explanation,
         "figures": figures,
         "token_summary": cost_data,
     }
@@ -225,7 +229,7 @@ def stage_artifacts(
     task_dir: str,
     staging: str,
     sanitizer: SecretSanitizer,
-) -> Tuple[List[str], bool, int]:
+) -> Tuple[List[str], bool, bool, bool, int]:
     """Copy and sanitize artifacts into staging directory.
 
     Layout:
@@ -234,9 +238,14 @@ def stage_artifacts(
         config.json            — task config (sanitized)
         result.json            — task result (sanitized)
         paper.pdf              — latest paper
+        paper.docx             — latest Word export
         figures/               — latest figures
+        configs/               — environment-lock templates
+        manifests/             — protocol manifest templates and lock summary
+        reports/               — compute-parity report templates
+        manuscript_explanation.md — latest companion explanation
 
-    Returns (figure_names, has_paper, submission_count).
+    Returns (figure_names, has_paper, has_docx, has_manuscript_explanation, submission_count).
     """
     agent_dir = os.path.join(task_dir, "agent")
     artifacts_dir = None
@@ -303,6 +312,20 @@ def stage_artifacts(
             shutil.copy2(pdf_path, os.path.join(staging, "paper.pdf"))
             has_paper = True
 
+    has_docx = False
+    if artifacts_dir:
+        docx_path = os.path.join(artifacts_dir, "paper.docx")
+        if os.path.isfile(docx_path):
+            shutil.copy2(docx_path, os.path.join(staging, "paper.docx"))
+            has_docx = True
+
+    has_manuscript_explanation = False
+    if artifacts_dir:
+        explanation_path = os.path.join(artifacts_dir, "manuscript_explanation.md")
+        if os.path.isfile(explanation_path):
+            sanitizer.sanitize_file(explanation_path, os.path.join(staging, "manuscript_explanation.md"))
+            has_manuscript_explanation = True
+
     # Figures (top-level figures/).
     figures = []
     if artifacts_dir:
@@ -311,9 +334,52 @@ def stage_artifacts(
             fig_dst = os.path.join(staging, "figures")
             os.makedirs(fig_dst, exist_ok=True)
             for fname in sorted(os.listdir(fig_src)):
-                if fname.lower().endswith((".png", ".jpg", ".jpeg", ".svg", ".pdf")):
+                lower = fname.lower()
+                if lower.endswith((".png", ".jpg", ".jpeg", ".svg", ".pdf")):
                     shutil.copy2(os.path.join(fig_src, fname), os.path.join(fig_dst, fname))
                     figures.append(fname)
+                elif lower in {"readme.md", "figure_provenance.json"}:
+                    sanitizer.sanitize_file(os.path.join(fig_src, fname), os.path.join(fig_dst, fname))
+
+    # Protocol lock templates and summaries.
+    if artifacts_dir:
+        configs_src = os.path.join(artifacts_dir, "configs")
+        if os.path.isdir(configs_src):
+            configs_dst = os.path.join(staging, "configs")
+            os.makedirs(configs_dst, exist_ok=True)
+            for fname in sorted(os.listdir(configs_src)):
+                src = os.path.join(configs_src, fname)
+                if os.path.isfile(src):
+                    sanitizer.sanitize_file(src, os.path.join(configs_dst, fname))
+
+        manifests_src = os.path.join(artifacts_dir, "manifests")
+        if os.path.isdir(manifests_src):
+            manifests_dst = os.path.join(staging, "manifests")
+            os.makedirs(manifests_dst, exist_ok=True)
+            for fname in sorted(os.listdir(manifests_src)):
+                src = os.path.join(manifests_src, fname)
+                if os.path.isfile(src):
+                    sanitizer.sanitize_file(src, os.path.join(manifests_dst, fname))
+
+        reports_src = os.path.join(artifacts_dir, "reports")
+        if os.path.isdir(reports_src):
+            reports_dst = os.path.join(staging, "reports")
+            os.makedirs(reports_dst, exist_ok=True)
+            for fname in sorted(os.listdir(reports_src)):
+                src = os.path.join(reports_src, fname)
+                if os.path.isfile(src):
+                    sanitizer.sanitize_file(src, os.path.join(reports_dst, fname))
+
+    # Direct top-level review artifacts.
+    if artifacts_dir:
+        reviews_src = os.path.join(artifacts_dir, "reviews")
+        if os.path.isdir(reviews_src):
+            reviews_dst = os.path.join(staging, "reviews")
+            os.makedirs(reviews_dst, exist_ok=True)
+            for fname in sorted(os.listdir(reviews_src)):
+                src = os.path.join(reviews_src, fname)
+                if os.path.isfile(src):
+                    sanitizer.sanitize_file(src, os.path.join(reviews_dst, fname))
 
     # --- reviewer_trace/ ---
     submission_count = 0
@@ -346,6 +412,13 @@ def stage_artifacts(
                 if os.path.isfile(resp_md):
                     sanitizer.sanitize_file(resp_md, os.path.join(v_staging, "response.md"))
 
+                explanation_md = os.path.join(sub_root, vdir, "manuscript_explanation.md")
+                if os.path.isfile(explanation_md):
+                    sanitizer.sanitize_file(
+                        explanation_md,
+                        os.path.join(v_staging, "manuscript_explanation.md"),
+                    )
+
                 # raw_response.txt or raw_response.json (sanitized).
                 for raw_name in ["raw_response.txt", "raw_response.json"]:
                     raw_path = os.path.join(comms_src, raw_name)
@@ -364,7 +437,7 @@ def stage_artifacts(
                                 os.path.join(trace_dst, tf),
                             )
 
-    return figures, has_paper, submission_count
+    return figures, has_paper, has_docx, has_manuscript_explanation, submission_count
 
 
 # ---------------------------------------------------------------------------
@@ -632,7 +705,7 @@ def push_job(job_dir: str, dry_run: bool = False, branch_override: Optional[str]
         # Stage to temp dir but don't push.
         sanitizer = SecretSanitizer()
         with tempfile.TemporaryDirectory(prefix="gitlab-push-") as staging:
-            figures, has_paper, sub_count = stage_artifacts(
+            figures, has_paper, has_docx, has_explanation, sub_count = stage_artifacts(
                 job_dir, task_dir, staging, sanitizer
             )
 
@@ -660,6 +733,8 @@ def push_job(job_dir: str, dry_run: bool = False, branch_override: Optional[str]
                 print(f"    {fname}")
             print(f"  Figures: {figures}")
             print(f"  Has paper: {has_paper}")
+            print(f"  Has docx: {has_docx}")
+            print(f"  Has manuscript explanation: {has_explanation}")
             print(f"  Submissions: {sub_count}")
             if summary:
                 print(f"  Events: {summary['total_events']}, Cost: ${summary['cost'].get('estimated_cost_usd', '?')}")
@@ -684,7 +759,7 @@ def push_job(job_dir: str, dry_run: bool = False, branch_override: Optional[str]
     sanitizer = SecretSanitizer()
 
     with tempfile.TemporaryDirectory(prefix="gitlab-push-") as staging:
-        figures, has_paper, sub_count = stage_artifacts(
+        figures, has_paper, has_docx, has_explanation, sub_count = stage_artifacts(
             job_dir, task_dir, staging, sanitizer
         )
 
@@ -698,7 +773,7 @@ def push_job(job_dir: str, dry_run: bool = False, branch_override: Optional[str]
         os.makedirs(at_dir, exist_ok=True)
         metadata = generate_metadata(
             job_dir, config, result_data, idea_stem, agent_type,
-            branch, figures, has_paper, sub_count,
+            branch, figures, has_paper, has_docx, has_explanation, sub_count,
             cost_data=summary["cost"] if summary else None,
         )
         with open(os.path.join(at_dir, "metadata.json"), "w") as f:

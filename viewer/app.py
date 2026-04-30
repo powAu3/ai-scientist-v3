@@ -608,6 +608,7 @@ def build_submission_records(job_dir: str, job_id: str) -> List[dict]:
 
             resp_md = os.path.join(v_dir, "reviewer_communications", "response.md")
             resp_json = os.path.join(v_dir, "reviewer_communications", "response.json")
+            explanation_md = os.path.join(v_dir, "manuscript_explanation.md")
 
             if os.path.exists(resp_md):
                 try:
@@ -625,7 +626,15 @@ def build_submission_records(job_dir: str, job_id: str) -> List[dict]:
                     pass
 
             has_pdf = os.path.exists(os.path.join(v_dir, "paper.pdf"))
+            has_docx = bool(ver.get("paper_docx", False) or os.path.exists(os.path.join(v_dir, "paper.docx")))
             has_tex = bool(ver.get("paper_tex", False) or os.path.exists(os.path.join(v_dir, "paper.tex")))
+            explanation_text = ""
+            if os.path.exists(explanation_md):
+                try:
+                    with open(explanation_md) as f:
+                        explanation_text = f.read()
+                except OSError:
+                    explanation_text = ""
             figures_count = 0
             fig_dir = os.path.join(v_dir, "figures")
             if os.path.isdir(fig_dir):
@@ -639,8 +648,12 @@ def build_submission_records(job_dir: str, job_id: str) -> List[dict]:
                 "review_markdown": mask_secrets_in_text(review_md or ""),
                 "rebuttal": mask_secrets_in_text(rebuttal_md or "") if rebuttal_md else None,
                 "rebuttal_markdown": mask_secrets_in_text(rebuttal_md or "") if rebuttal_md else None,
+                "manuscript_explanation_markdown": mask_secrets_in_text(explanation_text or ""),
+                "has_manuscript_explanation": bool(explanation_text),
                 "has_pdf": has_pdf,
                 "paper_url": f"/api/jobs/{job_id}/submissions/{directory}/paper" if has_pdf else None,
+                "has_docx": has_docx,
+                "docx_url": f"/api/jobs/{job_id}/submissions/{directory}/docx" if has_docx else None,
                 "has_tex": has_tex,
                 "has_experiments": bool(ver.get("has_experiments", False)),
                 "has_figures": bool(ver.get("has_figures", False) or figures_count > 0),
@@ -1173,19 +1186,26 @@ async def api_submissions(job_id: str):
         if vlog and vlog.get("versions"):
             versions = vlog["versions"]
 
-            # Fetch all response.md files in parallel to avoid N sequential API calls.
+            # Fetch all response.md and companion explanation files in parallel
+            # to avoid N sequential API calls.
             from concurrent.futures import ThreadPoolExecutor
             def _fetch_response(vdir):
                 if not vdir:
                     return None
                 data = GITLAB_CLIENT.get_file_raw(project_id, branch, f"reviewer_trace/{vdir}/response.md")
                 return data.decode("utf-8", errors="replace") if data else None
+            def _fetch_explanation(vdir):
+                if not vdir:
+                    return None
+                data = GITLAB_CLIENT.get_file_raw(project_id, branch, f"reviewer_trace/{vdir}/manuscript_explanation.md")
+                return data.decode("utf-8", errors="replace") if data else None
 
             with ThreadPoolExecutor(max_workers=min(8, len(versions))) as pool:
                 resp_texts = list(pool.map(_fetch_response, [v.get("directory", "") for v in versions]))
+                explanation_texts = list(pool.map(_fetch_explanation, [v.get("directory", "") for v in versions]))
 
             submissions = []
-            for v, resp_text in zip(versions, resp_texts):
+            for v, resp_text, explanation_text in zip(versions, resp_texts, explanation_texts):
                 vdir = v.get("directory", "")
                 review_md = ""
                 rebuttal_md = None
@@ -1198,7 +1218,11 @@ async def api_submissions(job_id: str):
                     "reviewer_mode": v.get("reviewer_mode"),
                     "review_markdown": review_md,
                     "rebuttal_markdown": rebuttal_md,
+                    "manuscript_explanation_markdown": mask_secrets_in_text(explanation_text or ""),
+                    "has_manuscript_explanation": bool(explanation_text),
                     "paper_url": f"/api/jobs/{job_id}/submissions/{vdir}/paper" if vdir else None,
+                    "has_docx": bool(v.get("paper_docx", False)),
+                    "docx_url": f"/api/jobs/{job_id}/submissions/{vdir}/docx" if vdir and v.get("paper_docx", False) else None,
                 })
             submissions.sort(key=lambda r: (r.get("version") or -1, r.get("timestamp") or ""), reverse=True)
             return JSONResponse({"submissions": submissions, "total": len(submissions)},
@@ -1262,6 +1286,50 @@ async def api_submission_pdf(job_id: str, submission_dir: str):
     return JSONResponse({"error": "PDF not found"}, status_code=404)
 
 
+@app.get("/api/jobs/{job_id}/submissions/{submission_dir}/docx")
+async def api_submission_docx(job_id: str, submission_dir: str):
+    """Serve paper.docx for a specific submission version directory."""
+    if not _safe_submission_dir_name(submission_dir):
+        return JSONResponse({"error": "Invalid submission directory"}, status_code=400)
+
+    gl = _gitlab_lookup(job_id)
+    if gl:
+        project_id, branch = gl
+        docx_bytes = GITLAB_CLIENT.get_file_raw(project_id, branch, "paper.docx")
+        if docx_bytes:
+            from starlette.responses import Response
+            return Response(
+                content=docx_bytes,
+                media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                headers={
+                    "Content-Disposition": "attachment; filename=paper.docx",
+                    "Cache-Control": "no-store",
+                    "X-Content-Type-Options": "nosniff",
+                },
+            )
+
+    if SOURCE_MODE == "gitlab":
+        return JSONResponse({"error": "DOCX not found on GitLab"}, status_code=404)
+    job_dir = os.path.join(JOBS_DIR, job_id)
+    if not os.path.isdir(job_dir):
+        return JSONResponse({"error": "Job not found"}, status_code=404)
+
+    for root in iter_submission_roots(job_dir):
+        docx_path = os.path.join(root, submission_dir, "paper.docx")
+        if os.path.exists(docx_path):
+            return FileResponse(
+                docx_path,
+                media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                filename="paper.docx",
+                content_disposition_type="attachment",
+                headers={
+                    "Cache-Control": "no-store",
+                    "X-Content-Type-Options": "nosniff",
+                },
+            )
+    return JSONResponse({"error": "DOCX not found"}, status_code=404)
+
+
 @app.get("/api/jobs/{job_id}/artifacts")
 async def api_artifacts(job_id: str):
     """List figures, papers, and other artifacts."""
@@ -1273,6 +1341,8 @@ async def api_artifacts(job_id: str):
         if gl_meta:
             figures = gl_meta.get("figures", [])
             papers = ["paper.pdf"] if gl_meta.get("has_paper_pdf") else []
+            if gl_meta.get("has_paper_docx"):
+                papers.append("paper.docx")
             return JSONResponse({"figures": figures, "papers": papers})
 
     # Fallback to local disk (local mode only).
@@ -1294,7 +1364,10 @@ async def api_artifacts(job_id: str):
     papers = []
     latex_dir = os.path.join(arts_dir, "latex")
     if os.path.isdir(latex_dir):
-        papers = [f for f in os.listdir(latex_dir) if f.endswith((".tex", ".pdf"))]
+        papers = [f for f in os.listdir(latex_dir) if f.endswith((".tex", ".pdf", ".docx"))]
+    for top_level_paper in ["paper.pdf", "paper.docx", "paper.tex"]:
+        if os.path.isfile(os.path.join(arts_dir, top_level_paper)) and top_level_paper not in papers:
+            papers.append(top_level_paper)
 
     return JSONResponse(mask_secrets({"figures": figures, "papers": papers}),
                         headers=_cache_headers_for_job(job_dir))

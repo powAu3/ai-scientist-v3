@@ -55,12 +55,18 @@ sync_artifacts() {{
     for DEST in /logs/agent/artifacts /logs/verifier/artifacts; do
         mkdir -p "$DEST" 2>/dev/null || true
         copy_tree "/app/experiment_codebase" "experiment_codebase"
+        copy_tree "/app/configs" "configs"
         copy_tree "/app/figures" "figures"
         copy_tree "/app/literature" "literature"
+        copy_tree "/app/manifests" "manifests"
+        copy_tree "/app/reports" "reports"
         copy_file "/app/latex/template.pdf" "paper.pdf"
+        copy_file "/app/latex/template.docx" "paper.docx"
         copy_file "/app/latex/template.tex" "paper.tex"
         copy_file "/app/latex/references.bib" "references.bib"
+        copy_file "/app/manuscript_explanation.md" "manuscript_explanation.md"
         copy_file "/app/review.json" "review.json"
+        copy_tree "/app/reviews" "reviews"
         copy_tree "/app/submissions" "submissions"
         copy_file "/app/requirements.txt" "requirements.txt"
         copy_tree "$CODEX_SESSIONS_DIR" "codex_sessions"

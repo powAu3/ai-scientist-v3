@@ -42,6 +42,10 @@ export interface Submission {
   reviewer_mode: string | null;
   review_markdown: string;
   rebuttal_markdown: string | null;
+  manuscript_explanation_markdown?: string;
+  has_manuscript_explanation?: boolean;
+  has_docx?: boolean;
+  docx_url?: string | null;
   paper_url: string | null;
 }
 

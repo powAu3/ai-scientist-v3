@@ -1798,9 +1798,11 @@ function renderSubmissionDetail() {
   }
 
   const s = submissionsCache[selectedSubmissionIdx];
-  const review = renderMarkdown(s.review_markdown || s.review || '');
-  const rebuttal = s.rebuttal_markdown || s.rebuttal;
-  const rebuttalHtml = rebuttal ? renderMarkdown(rebuttal) : '<p class="md-empty">No rebuttal recorded.</p>';
+	  const review = renderMarkdown(s.review_markdown || s.review || '');
+	  const rebuttal = s.rebuttal_markdown || s.rebuttal;
+	  const rebuttalHtml = rebuttal ? renderMarkdown(rebuttal) : '<p class="md-empty">No rebuttal recorded.</p>';
+	  const manuscriptExplanation = s.manuscript_explanation_markdown || '';
+	  const manuscriptExplanationHtml = manuscriptExplanation ? renderMarkdown(manuscriptExplanation) : '';
   meta.textContent = `Version v${s.version ?? '?'} \u00B7 ${formatTimestamp(s.timestamp) || 'Unknown time'}`;
 
   container.innerHTML = `
@@ -1812,12 +1814,18 @@ function renderSubmissionDetail() {
       </div>
       <div class="submission-body">
         <div class="paper-actions">
-          ${s.paper_url ? '<button class="pdf-btn" id="preview-pdf-btn">Preview PDF</button>' : ''}
-          ${s.paper_url ? `<a class="pdf-link" href="${encodeURI(s.paper_url)}" target="_blank" rel="noopener noreferrer">Open PDF in new tab</a>` : ''}
-          ${!s.paper_url ? '<span class="md-empty">No submission PDF captured for this version.</span>' : ''}
+	          ${s.paper_url ? '<button class="pdf-btn" id="preview-pdf-btn">Preview PDF</button>' : ''}
+	          ${s.paper_url ? `<a class="pdf-link" href="${encodeURI(s.paper_url)}" target="_blank" rel="noopener noreferrer">Open PDF in new tab</a>` : ''}
+	          ${s.docx_url ? `<a class="pdf-link" href="${encodeURI(s.docx_url)}">Download Word DOCX</a>` : ''}
+	          ${!s.paper_url ? '<span class="md-empty">No submission PDF captured for this version.</span>' : ''}
         </div>
-        <div class="paper-wrap" id="pdf-preview-wrap" style="display:none;"></div>
-        <section class="md-section">
+	        <div class="paper-wrap" id="pdf-preview-wrap" style="display:none;"></div>
+	        ${manuscriptExplanationHtml ? `
+	        <section class="md-section">
+	          <h4>Manuscript Explanation</h4>
+	          <div class="md-content">${manuscriptExplanationHtml}</div>
+	        </section>` : ''}
+	        <section class="md-section">
           <h4>Review</h4>
           <div class="md-content">${review}</div>
         </section>
@@ -1826,9 +1834,11 @@ function renderSubmissionDetail() {
           <div class="md-content">${rebuttalHtml}</div>
         </section>
         <div class="sub-badges">
-          ${s.has_pdf ? '<span class="sub-badge">PDF</span>' : ''}
-          ${s.has_tex ? '<span class="sub-badge">TEX</span>' : ''}
-          ${s.has_figures ? `<span class="sub-badge">${s.figures_count || 0} figs</span>` : ''}
+	          ${s.has_pdf ? '<span class="sub-badge">PDF</span>' : ''}
+	          ${s.has_docx ? '<span class="sub-badge">DOCX</span>' : ''}
+	          ${s.has_tex ? '<span class="sub-badge">TEX</span>' : ''}
+	          ${s.has_manuscript_explanation ? '<span class="sub-badge">explanation</span>' : ''}
+	          ${s.has_figures ? `<span class="sub-badge">${s.figures_count || 0} figs</span>` : ''}
         </div>
       </div>
     </article>
