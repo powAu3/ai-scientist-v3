@@ -7,6 +7,15 @@ review-backed forecast results. The PDF is polished like a serious manuscript,
 while `manuscript_explanation.md` carries the detailed evidence-status and
 replacement-trigger explanation.
 
+Customer branch names are part of the workflow contract:
+
+- `customer-review-backed-paper-mode`: low-compute mode; no experiments, strict
+  review/repair, forecast data, PDF/DOCX, and area-chair gate.
+- `customer-normal-experiment-mode`: normal empirical mode; run experiments when
+  compute and data are available, then write the paper from measured artifacts.
+
+See `docs/customer-branches.md` for the branch-level contract.
+
 ## The Bitter Lesson Applied
 
 v2 used ~5000 lines of Python to orchestrate a 4-stage BFS tree search with hardcoded stages, explicit node selection, LLM-evaluated completion criteria, and manual parallelism. v3 deletes all of that. Claude Code already is a tree search agent — it writes code, sees errors, fixes them, tries alternatives, remembers what worked.

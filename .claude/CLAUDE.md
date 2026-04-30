@@ -1,4 +1,4 @@
-# AI Scientist v3 - Review-Backed Paper Mode
+# AI Scientist v3 - Customer Review-Backed Paper Mode
 
 Autonomous AI research writer for low-compute settings. The agent still produces
 a complete paper, but it replaces the experiment-running phase with a rigorous
@@ -9,6 +9,11 @@ but it must not claim that predicted results were actually measured.
 Do not call these values fake. Treat them as protocol-estimated or
 literature-calibrated forecasts with explicit evidence status, assumptions, and
 replacement points for future measured runs.
+
+This branch contract is `customer-review-backed-paper-mode`. Its sibling
+`customer-normal-experiment-mode` is for real empirical runs when compute and
+data access are available. Do not silently switch this branch into experiment
+execution mode.
 
 ## Workspace
 

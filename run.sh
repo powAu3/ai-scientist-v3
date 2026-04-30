@@ -272,6 +272,7 @@ GITLAB_REPO_URL=""
 GITLAB_BRANCH=""
 GITLAB_BRANCHES=""
 GITLAB_WEB_URL=""
+GITLAB_RESUME_BRANCH=""
 if [[ -n "${GITLAB_KEY:-}" ]]; then
     GITLAB_TS="$(date -u +%Y-%m-%d-%H-%M)"
     GITLAB_SETUP_ARGS=(--idea-name "$IDEA_NAME" --agent "$AGENT_TYPE" --timestamp "$GITLAB_TS")
