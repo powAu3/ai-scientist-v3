@@ -11,7 +11,7 @@ REVIEW_JSON="$APP_DIR/review.json"
 REPAIR_FILE="$APP_DIR/preflight_repair.md"
 REVISED_PROTOCOL_FILE="$APP_DIR/revised_experiment_protocol.md"
 PREDICTED_DATA="$APP_DIR/predicted_results/predicted_results.csv"
-REQUIREMENTS_FILE="$APP_DIR/requirements.txt"
+DEPENDENCY_SNAPSHOT="$LOGS_DIR/verifier/requirements.txt"
 PAPER_TEX="$APP_DIR/latex/template.tex"
 PAPER_PDF="$APP_DIR/latex/template.pdf"
 REFERENCES_FILE="$APP_DIR/latex/references.bib"
@@ -20,8 +20,9 @@ SCORE=0
 TOTAL=6
 
 # Snapshot Python dependencies for reproducibility and resume.
-uv pip freeze --system > "$REQUIREMENTS_FILE" 2>/dev/null || \
-    pip freeze > "$REQUIREMENTS_FILE" 2>/dev/null || \
+mkdir -p "$(dirname "$DEPENDENCY_SNAPSHOT")"
+uv pip freeze --system > "$DEPENDENCY_SNAPSHOT" 2>/dev/null || \
+    pip freeze > "$DEPENDENCY_SNAPSHOT" 2>/dev/null || \
     true
 
 # Copy artifacts to both mounted dirs (agent for Docker, verifier as backup for Modal).
@@ -36,7 +37,7 @@ for dest in "$LOGS_DIR/agent/artifacts" "$LOGS_DIR/verifier/artifacts"; do
     cp "$PAPER_TEX" "$dest/paper.tex" 2>/dev/null || true
     cp "$PAPER_PDF" "$dest/paper.pdf" 2>/dev/null || true
     cp "$REFERENCES_FILE" "$dest/references.bib" 2>/dev/null || true
-    cp "$REQUIREMENTS_FILE" "$dest/requirements.txt" 2>/dev/null || true
+    cp "$DEPENDENCY_SNAPSHOT" "$dest/requirements.txt" 2>/dev/null || true
     cp -r "$APP_DIR/literature/" "$dest/literature/" 2>/dev/null || true
     cp -r "$APP_DIR/submissions/" "$dest/submissions/" 2>/dev/null || true
 done
@@ -169,7 +170,7 @@ fi
 
 echo ""
 echo "Score: $SCORE/$TOTAL"
-echo "Dependencies: $(wc -l < "$REQUIREMENTS_FILE" 2>/dev/null || echo 0) packages"
+echo "Dependencies: $(wc -l < "$DEPENDENCY_SNAPSHOT" 2>/dev/null || echo 0) packages"
 
 # Harbor expects all reward.json values to be numeric.
 mkdir -p "$LOGS_DIR/verifier"
