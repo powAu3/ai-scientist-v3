@@ -13,6 +13,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 IDEA_JSON=""
 MODEL=""           # empty = auto-select based on agent type
 TIMEOUT="14400"
@@ -169,8 +171,6 @@ if ! [[ "$ARTIFACT_SYNC_INTERVAL" =~ ^[0-9]+$ ]] || [[ "$ARTIFACT_SYNC_INTERVAL"
     echo "Error: --artifact-sync-interval must be an integer >= 30" >&2
     exit 1
 fi
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Load .env into the current shell so harbor/agent can read them (optional) ---
 for env_file in "$SCRIPT_DIR/.env" "$SCRIPT_DIR/../.env"; do

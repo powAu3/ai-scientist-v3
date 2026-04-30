@@ -189,6 +189,36 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+section "11. --gpus works when launched outside repo"
+# ---------------------------------------------------------------------------
+
+MOCK_DIR=$(mktemp -d)
+cat > "$MOCK_DIR/harbor" <<'MOCK'
+#!/bin/bash
+echo "HARBOR_ARGS: $@"
+exit 0
+MOCK
+chmod +x "$MOCK_DIR/harbor"
+cat > "$MOCK_DIR/docker" <<'MOCK'
+#!/bin/bash
+if [ "$1" = "info" ]; then
+    echo "Runtimes: nvidia"
+fi
+exit 0
+MOCK
+chmod +x "$MOCK_DIR/docker"
+
+GPU_OUTPUT=$(cd /tmp && PATH="$MOCK_DIR:$PATH" bash "$RUN_SH" "$DUMMY_IDEA" --gpus 1 2>&1 || true)
+rm -rf "$MOCK_DIR"
+
+if echo "$GPU_OUTPUT" | grep -q "GPUs:.*1" && \
+   echo "$GPU_OUTPUT" | grep -q -- "--override-gpus 1"; then
+    pass "--gpus can resolve repo-local helpers from outside the repo"
+else
+    fail "--gpus outside repo failed. Output: $GPU_OUTPUT"
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 
