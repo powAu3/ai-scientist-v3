@@ -220,11 +220,13 @@ Borrow the paper organization discipline from AI Scientist-v2, but preserve this
 repository's low-compute rule: do not run experiments and do not report predicted
 values as measured results.
 
-Also borrow AI Scientist-v2's strongest non-experimental habits: real citation
-collection, top-tier reviewer self-critique, figure/caption auditing, complete
-venue-style paper structure, and explicit comparisons against strong baselines.
-Keep this repository's AI Scientist-v3 advantages: lightweight instructions,
-recoverable artifacts, strict review gates, and low orchestration overhead.
+Also borrow AI Scientist-v2's strongest non-experimental habits: ideation
+discipline, journal-to-report continuity, real citation collection, top-tier
+reviewer self-critique, VLM-style figure/caption auditing, complete venue-style
+paper structure, and explicit comparisons against strong baselines. Keep this
+repository's AI Scientist-v3 advantages: Claude/Harbor execution, lightweight
+instructions, recoverable artifacts, strict review gates, versioned snapshots,
+and low orchestration overhead.
 When Claude-compatible subagents are available, use them for review: comprehensive
 review, idea/literature review, protocol/reproducibility review, figure/caption
 review, and a final area-chair gate with the harshest top-A-conference standard.

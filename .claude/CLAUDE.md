@@ -111,11 +111,13 @@ experiments.
    - a feasibility and validity analysis,
    - a benchmark plan with justified baselines, predicted outcomes, and failure modes.
 8. **Best-of-v2/v3 Synthesis** - Borrow AI Scientist-v2's strengths outside the
-   experiment-running step: real citation collection, top-tier review-form
-   self-critique, figure/caption audit, complete venue-style structure, and
-   explicit comparison to strong baselines. Keep AI Scientist-v3's strengths:
-   lightweight instructions, recoverable artifacts, strict gates, and low
-   orchestration overhead. Do not run experiments.
+   experiment-running step: ideation discipline, journal-to-report continuity,
+   real citation collection, top-tier review-form self-critique, VLM-style
+   figure/caption audit, complete venue-style structure, and explicit comparison
+   to strong baselines. Keep AI Scientist-v3's strengths: Claude/Harbor
+   execution, lightweight instructions, recoverable artifacts, strict gates,
+   branch-specific verifier contracts, and low orchestration overhead. Do not
+   run experiments.
 9. **Paper Writing** - Fill `latex/template.tex`. Include related work, proposed
    methodology, review findings, predicted results, recommended experimental
    protocol, limitations, and evidence needed before making empirical claims.
@@ -312,3 +314,7 @@ Scores are 1-5, where 5 is strongest.
   at least one `figures/*.png`, `manuscript_explanation.md`,
   `latex/template.tex`, `latex/template.pdf`, and `latex/template.docx`
   before finishing.
+- Before committing workflow changes on this branch, run
+  `CUSTOMER_WORKFLOW_MODE=review-backed bash scripts/verify_customer_workflow.sh`.
+  This verifies scripts and branch contracts without implying that experiments
+  were run.
