@@ -151,6 +151,25 @@ latex/template.tex
 latex/template.pdf
 ```
 
+Use an AI Scientist-v2-style manuscript structure rather than a one-page
+artifact stub. The main paper should look like a serious workshop submission:
+
+- title, abstract, introduction, related work, background, method, experimental
+  setup, predicted results, limitations, conclusion, and references;
+- enough substantive prose to explain the problem, design choices, protocol,
+  predicted evidence, and caveats (roughly 2,000+ words unless the idea is
+  unusually narrow);
+- real, relevant citations in `latex/references.bib` and `\cite{...}` calls in
+  the manuscript;
+- at least one professional table and at least one generated figure;
+- an impact/ethics or deployment-risk paragraph when the domain affects safety,
+  infrastructure, maintenance, or public services;
+- an appendix or supplementary section when details do not fit in the main text.
+
+Borrow the paper organization discipline from AI Scientist-v2, but preserve this
+repository's low-compute rule: do not run experiments and do not report predicted
+values as measured results.
+
 Use the paper to present:
 
 - the research question and motivation,

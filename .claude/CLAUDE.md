@@ -146,6 +146,14 @@ Scores are 1-5, where 5 is strongest.
 
 ## Paper Requirements
 
+- Use an AI Scientist-v2-style paper organization: title, abstract,
+  introduction, related work, background, method, experimental setup, predicted
+  results, limitations, conclusion, references, and optional appendix.
+- Write a substantive manuscript, not an artifact stub. Aim for roughly 2,000+
+  words unless the idea is unusually narrow.
+- Include real citations in `latex/references.bib` and cite them from the paper.
+- Include at least one professional table, at least one generated figure, and at
+  least one equation that supports the review/prediction logic.
 - Be explicit that no new experiments were run.
 - Include a predicted-results section or table, clearly labeled as predicted,
   expected, or hypothesized.

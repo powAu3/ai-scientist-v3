@@ -17,7 +17,7 @@ PAPER_PDF="$APP_DIR/latex/template.pdf"
 REFERENCES_FILE="$APP_DIR/latex/references.bib"
 
 SCORE=0
-TOTAL=6
+TOTAL=8
 
 # Snapshot Python dependencies for reproducibility and resume.
 mkdir -p "$(dirname "$DEPENDENCY_SNAPSHOT")"
@@ -58,6 +58,43 @@ paper_has_formula() {
 
 paper_references_figure() {
     grep -Eq '\\includegraphics' "$PAPER_TEX" 2>/dev/null
+}
+
+paper_word_count() {
+    python3 - "$PAPER_TEX" <<'PY' 2>/dev/null
+import re, sys
+try:
+    text = open(sys.argv[1], encoding="utf-8").read()
+except Exception:
+    print(0)
+    raise SystemExit(0)
+text = re.sub(r"%.*", " ", text)
+text = re.sub(r"\\[a-zA-Z]+\*?(?:\[[^\]]*\])?(?:\{[^{}]*\})?", " ", text)
+words = re.findall(r"[A-Za-z][A-Za-z0-9-]{2,}", text)
+print(len(words))
+PY
+}
+
+paper_has_v2_structure() {
+    local words
+    words="$(paper_word_count)"
+    [ "${words:-0}" -ge 1800 ] && \
+        grep -Eiq '\\begin\{abstract\}' "$PAPER_TEX" 2>/dev/null && \
+        grep -Eiq '\\section\{Introduction\}' "$PAPER_TEX" 2>/dev/null && \
+        grep -Eiq '\\section\{Related Work\}' "$PAPER_TEX" 2>/dev/null && \
+        grep -Eiq '\\section\{Background\}' "$PAPER_TEX" 2>/dev/null && \
+        grep -Eiq '\\section\{Method\}' "$PAPER_TEX" 2>/dev/null && \
+        grep -Eiq '\\section\{Experimental Setup\}' "$PAPER_TEX" 2>/dev/null && \
+        grep -Eiq '\\section\{Predicted Results|\\section\{Experiments' "$PAPER_TEX" 2>/dev/null && \
+        grep -Eiq '\\section\{Limitations\}' "$PAPER_TEX" 2>/dev/null && \
+        grep -Eiq '\\section\{Conclusion\}' "$PAPER_TEX" 2>/dev/null && \
+        grep -Eiq '\\begin\{table\}' "$PAPER_TEX" 2>/dev/null
+}
+
+references_valid() {
+    [ -s "$REFERENCES_FILE" ] && \
+        [ "$(grep -Ec '^@[A-Za-z]+' "$REFERENCES_FILE" 2>/dev/null || echo 0)" -ge 6 ] && \
+        grep -Eq '\\cite(t|p)?\{' "$PAPER_TEX" 2>/dev/null
 }
 
 figure_file() {
@@ -166,6 +203,20 @@ if [ -s "$PAPER_TEX" ] && [ -s "$PAPER_PDF" ] && paper_declares_prediction_mode 
     echo "OK: paper source, compiled PDF, prediction disclosure, and formula"
 else
     echo "MISSING: paper source, compiled PDF, prediction disclosure, or formula"
+fi
+
+if paper_has_v2_structure; then
+    SCORE=$((SCORE + 1))
+    echo "OK: substantive AI Scientist-v2-style paper structure and table"
+else
+    echo "MISSING: substantive AI Scientist-v2-style paper structure or table"
+fi
+
+if references_valid; then
+    SCORE=$((SCORE + 1))
+    echo "OK: real bibliography file and in-text citations"
+else
+    echo "MISSING: bibliography file with at least six entries or in-text citations"
 fi
 
 echo ""

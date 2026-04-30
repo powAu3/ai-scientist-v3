@@ -16,10 +16,16 @@ TEX_FILE="template.tex"
 PDFLATEX=$(command -v pdflatex 2>/dev/null || echo "/Library/TeX/texbin/pdflatex")
 BIBTEX=$(command -v bibtex 2>/dev/null || echo "/Library/TeX/texbin/bibtex")
 CHKTEX=$(command -v chktex 2>/dev/null || echo "/Library/TeX/texbin/chktex")
+TECTONIC=$(command -v tectonic 2>/dev/null || true)
 
 if [[ ! -x "$PDFLATEX" ]]; then
-  echo "ERROR: pdflatex not found. Install TeX Live or MacTeX." >&2
-  exit 1
+  if [[ -z "$TECTONIC" ]]; then
+    echo "ERROR: pdflatex not found. Install TeX Live/MacTeX, or install tectonic." >&2
+    exit 1
+  fi
+  USE_TECTONIC=1
+else
+  USE_TECTONIC=0
 fi
 
 cd "$LATEX_DIR"
@@ -29,29 +35,37 @@ if [[ ! -f "$TEX_FILE" ]]; then
   exit 1
 fi
 
+PDF_FILE="${TEX_FILE%.tex}.pdf"
+rm -f "$PDF_FILE"
+
 echo "=== Compiling $TEX_FILE ==="
+COMPILE_STATUS=0
 
-# First pass (generates .aux)
-echo "--- Pass 1/3: pdflatex ---"
-"$PDFLATEX" -interaction=nonstopmode "$TEX_FILE" > /dev/null 2>&1
-PASS1=$?
+if [[ "$USE_TECTONIC" -eq 1 ]]; then
+  echo "--- tectonic fallback (pdflatex unavailable) ---"
+  "$TECTONIC" --keep-intermediates --keep-logs --outdir . "$TEX_FILE"
+  COMPILE_STATUS=$?
+else
+  # First pass (generates .aux)
+  echo "--- Pass 1/3: pdflatex ---"
+  "$PDFLATEX" -interaction=nonstopmode "$TEX_FILE" > /dev/null 2>&1
 
-# BibTeX (resolves citations)
-echo "--- BibTeX ---"
-"$BIBTEX" "${TEX_FILE%.tex}" 2>&1 | grep -E "^(Warning|Error|I found)" || true
+  # BibTeX (resolves citations)
+  echo "--- BibTeX ---"
+  "$BIBTEX" "${TEX_FILE%.tex}" 2>&1 | grep -E "^(Warning|Error|I found)" || true
 
-# Second pass (includes bibliography)
-echo "--- Pass 2/3: pdflatex ---"
-"$PDFLATEX" -interaction=nonstopmode "$TEX_FILE" > /dev/null 2>&1
+  # Second pass (includes bibliography)
+  echo "--- Pass 2/3: pdflatex ---"
+  "$PDFLATEX" -interaction=nonstopmode "$TEX_FILE" > /dev/null 2>&1
 
-# Third pass (resolves cross-references)
-echo "--- Pass 3/3: pdflatex ---"
-"$PDFLATEX" -interaction=nonstopmode "$TEX_FILE" > /dev/null 2>&1
-PASS3=$?
+  # Third pass (resolves cross-references)
+  echo "--- Pass 3/3: pdflatex ---"
+  "$PDFLATEX" -interaction=nonstopmode "$TEX_FILE" > /dev/null 2>&1
+  COMPILE_STATUS=$?
+fi
 
 # Check compilation result
-PDF_FILE="${TEX_FILE%.tex}.pdf"
-if [[ -f "$PDF_FILE" ]]; then
+if [[ "$COMPILE_STATUS" -eq 0 && -f "$PDF_FILE" ]]; then
   PDF_SIZE=$(wc -c < "$PDF_FILE" | tr -d ' ')
   PDF_PAGES=$(python3 -c "
 try:
