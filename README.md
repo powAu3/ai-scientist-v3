@@ -2,7 +2,8 @@
 
 Autonomous AI research agent. This fork is configured for low-compute machines:
 the agent still writes a complete paper, but it replaces experiment execution with
-a rigorous experiment-rationality review and clearly labeled predicted results.
+a strict experiment-rationality gate, preflight repair for weak designs, and
+clearly labeled predicted results.
 
 ## The Bitter Lesson Applied
 
@@ -35,7 +36,7 @@ Three ways to use AI Scientist v3, from simplest to most production-ready:
 ```bash
 cd ai-scientist-v3
 claude
-> Read ideas/idea_tabulartransformer.json and conduct this research without running experiments. Write the paper, review the experimental plan, and include clearly labeled predicted results.
+> Read ideas/idea_tabulartransformer.json and conduct this research without running experiments. Strictly review the experimental plan, repair it first if the gate fails, then write the paper with formulas, predicted data, figures, and clearly labeled predicted results.
 ```
 
 The `/search-papers` skill and `scripts/submit_for_review.sh` work against the local filesystem. No isolation — artifacts write directly to the repo directory. Good for drafting a paper and checking whether the proposed experiments are worth running later.
@@ -53,7 +54,7 @@ The `/search-papers` skill and `scripts/submit_for_review.sh` work against the l
 ./run.sh ideas/idea_tabulartransformer.json --env modal --gpus 1 --artifact-sync-interval 120
 ```
 
-Each run is fully isolated in a Docker container. Artifacts are collected in `jobs/{idea}_{timestamp}/` on the host, including `experiment_review.md`, `paper.tex`, and `paper.pdf`. Monitor runs with the [viewer](#viewing-job-results).
+Each run is fully isolated in a Docker container. Artifacts are collected in `jobs/{idea}_{timestamp}/` on the host, including `experiment_review.md`, `review.json`, repair artifacts when needed, `predicted_results/`, `figures/`, `paper.tex`, and `paper.pdf`. Monitor runs with the [viewer](#viewing-job-results).
 
 ### Agent Selection
 
@@ -121,9 +122,10 @@ Each review-backed paper run executes in an isolated Docker container via Harbor
 1. `run.sh <idea.json>` generates `instruction.md` from the `.template` with the idea injected
 2. Harbor builds a Docker image from `Dockerfile.cpu` (slim) or `Dockerfile.gpu` (CUDA + PyTorch)
 3. The agent (Claude Code or Gemini CLI) runs inside the container at `/app/`
-4. The agent writes `experiment_review.md`, fills `latex/template.tex`, and compiles `latex/template.pdf`
-5. On completion, `harbor-task/tests/test.sh` verifies the review and paper artifacts
-6. Artifacts are collected in `jobs/<job-id>/` on the host
+4. The agent writes a strict `experiment_review.md`; if the design fails, it creates `preflight_repair.md` and `revised_experiment_protocol.md`
+5. The agent creates predicted data, figures, formulas, fills `latex/template.tex`, and compiles `latex/template.pdf`
+6. On completion, `harbor-task/tests/test.sh` verifies review, repair, data, figures, formulas, and paper artifacts
+7. Artifacts are collected in `jobs/<job-id>/` on the host
 
 Source templates are never modified — `run.sh` generates `instruction.md` and `Dockerfile` at runtime and cleans them up on exit.
 
@@ -140,7 +142,7 @@ This bakes the previous run's artifacts into the new container and injects a "Re
 After reviewing a run's output, you can send feedback to steer the next run:
 
 ```bash
-./run.sh ideas/idea_tabulartransformer.json --resume-from jobs/2026-02-14__12-10-51/ --feedback "The ablation study is missing a comparison without the temporal zoom component. Also add error bars to Figure 3."
+./run.sh ideas/idea_tabulartransformer.json --resume-from jobs/2026-02-14__12-10-51/ --feedback "The strict gate is too lenient on baseline tuning. Require nested validation, add a leakage-control checklist, and make the predicted-results figure show uncertainty bands."
 ```
 
 The `--feedback` text is injected into the instruction as a "Feedback from Previous Run" section. The agent sees it at the start of the session and prioritizes addressing it. Combine with `--resume-from` so the agent builds on existing artifacts rather than starting over.
@@ -266,14 +268,14 @@ You can also use Harbor's built-in viewer: `harbor view jobs`.
 The agent receives a research idea and autonomously:
 
 1. Uses `/search-papers` to find related work (Semantic Scholar, OpenReview, CrossRef)
-2. Reviews whether the proposed experiments can answer the hypothesis
-3. Checks baselines, controls, datasets, metrics, leakage risks, feasibility, and threats to validity
-4. Predicts likely outcomes from the proposal and literature, clearly labeling them as predicted rather than measured
-5. Writes `experiment_review.md` with the design review and recommended changes
-6. Writes a complete paper using the LaTeX template
-7. Compiles the paper to `latex/template.pdf`
-8. Optionally submits for paper-quality review via `scripts/submit_for_review.sh`
-9. Iterates on the paper, review findings, and predicted-results framing
+2. Strictly reviews whether the proposed experiments can answer the hypothesis
+3. Checks baselines, controls, datasets, metrics, leakage risks, feasibility, statistical rigor, and threats to validity
+4. Hands failed designs to the preflight repair flow before paper writing
+5. Predicts likely outcomes from the repaired protocol and literature, clearly labeling them as predicted rather than measured
+6. Produces predicted data, figures, and formulas to support the paper
+7. Writes a complete paper using the LaTeX template
+8. Compiles the paper to `latex/template.pdf`
+9. Optionally submits for paper-quality review via `scripts/submit_for_review.sh`
 
 No hardcoded stages. No tree data structure. No Python orchestration. The agent decides what to do and when, using its own scientific judgment.
 

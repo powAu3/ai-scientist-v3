@@ -9,7 +9,9 @@ You must **not** run training, benchmark models, tune hyperparameters, download
 large datasets, or claim empirical findings. The paper should be framed as a
 protocol/design-analysis paper backed by an experiment-rationality review and
 simple predicted/expected results. Predicted results are allowed, but they must
-never be presented as measured outcomes.
+never be presented as measured outcomes. The review gate must be strict: if the
+experimental design is weak, route it through a preflight repair flow before
+writing the final paper.
 
 ## Research Idea
 
@@ -37,10 +39,14 @@ Assess the proposal along these dimensions:
 4. **Statistical rigor** - Are seeds, variance estimates, effect sizes, and
    uncertainty plans adequate?
 5. **Feasibility and cost** - Is the plan practical for limited local compute?
-6. **Predicted results** - What outcomes are most likely if the plan is run, and
+6. **Strict gate decision** - Is the plan runnable as-is, does it need repair, or
+   should it be rejected?
+7. **Preflight repair** - If the answer is not "runnable as-is", create repair
+   artifacts before writing the paper.
+8. **Predicted results** - What outcomes are most likely if the repaired plan is run, and
    why? Use directionality, qualitative ranking, or rough ranges when justified.
-7. **Literature context** - Are obvious prior works or existing answers missing?
-8. **Decision** - Should the experiment be run as-is, revised first, or rejected?
+9. **Literature context** - Are obvious prior works or existing answers missing?
+10. **Decision** - Should the experiment be run as-is, revised first, or rejected?
 
 Use these headings exactly:
 
@@ -50,6 +56,8 @@ Use these headings exactly:
 ## Idea Summary
 
 ## Verdict
+
+## Strict Gate Scorecard
 
 ## Hypothesis And Claim Fit
 
@@ -61,7 +69,11 @@ Use these headings exactly:
 
 ## Feasibility And Cost
 
+## Formal Criteria
+
 ## Predicted Results And Rationale
+
+## Preflight Repair Handoff
 
 ## Threats To Validity
 
@@ -73,18 +85,62 @@ Use these headings exactly:
 Use one of these final decisions: `Run`, `Revise Before Running`, or
 `Do Not Run Yet`.
 
-Optionally also write `review.json` with this shape:
+Also write `review.json` with this shape:
 
 ```json
 {
   "decision": "Run | Revise Before Running | Do Not Run Yet",
+  "gate_decision": "pass | repair | reject",
+  "repair_required": true,
   "confidence": 1,
   "soundness": 1,
+  "baseline_rigor": 1,
+  "data_metric_fit": 1,
+  "leakage_control": 1,
+  "statistical_rigor": 1,
   "feasibility": 1,
   "main_risks": [],
-  "required_changes": []
+  "required_changes": [],
+  "repair_artifacts": ["preflight_repair.md", "revised_experiment_protocol.md"]
 }
 ```
+
+If `decision` is `Revise Before Running` or `Do Not Run Yet`, create both:
+
+```text
+preflight_repair.md
+revised_experiment_protocol.md
+```
+
+The repaired protocol should specify corrected baselines, controls, datasets,
+metrics, leakage prevention, statistical plan, compute budget, and stop/go
+criteria. The paper must be based on this repaired protocol while clearly noting
+that the original plan failed the strict gate.
+
+## Required Predicted Data, Figures, And Formulas
+
+Create:
+
+```text
+predicted_results/predicted_results.csv
+figures/<one-or-more>.png
+```
+
+The CSV must contain predicted or expected values/rankings, not measured results.
+Recommended columns:
+
+```text
+scenario,dataset_bucket,method,metric,predicted_value,uncertainty,assumption,rationale
+```
+
+Generate at least one figure from the predicted data or strict gate scorecard.
+Every figure title/caption must say predicted/expected or design-review, not
+measured.
+
+Include at least one mathematical formula in the paper, such as a gate score,
+expected utility, crossover criterion, or planned statistical test. The formula
+should support the review or prediction logic rather than pretending to report
+actual measurements.
 
 ## Required Paper Work
 
@@ -102,6 +158,8 @@ Use the paper to present:
 - the proposed experimental protocol,
 - the rationality review findings,
 - clearly labeled predicted results,
+- the predicted data table and at least one generated figure,
+- at least one formula defining the review or prediction criterion,
 - recommended changes before running,
 - limitations caused by not executing experiments,
 - future empirical evidence required before making performance claims.
@@ -137,6 +195,10 @@ Save artifacts incrementally so partial work survives timeouts:
 mkdir -p /logs/agent/artifacts
 cp experiment_review.md /logs/agent/artifacts/ 2>/dev/null
 cp review.json /logs/agent/artifacts/ 2>/dev/null
+cp preflight_repair.md /logs/agent/artifacts/ 2>/dev/null
+cp revised_experiment_protocol.md /logs/agent/artifacts/ 2>/dev/null
+cp -r predicted_results/ /logs/agent/artifacts/predicted_results/ 2>/dev/null
+cp -r figures/ /logs/agent/artifacts/figures/ 2>/dev/null
 cp latex/template.pdf /logs/agent/artifacts/paper.pdf 2>/dev/null
 cp latex/template.tex /logs/agent/artifacts/paper.tex 2>/dev/null
 cp latex/references.bib /logs/agent/artifacts/references.bib 2>/dev/null
