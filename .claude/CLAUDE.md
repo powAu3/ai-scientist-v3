@@ -58,32 +58,39 @@ license constraints. Keep downloads targeted and logged. Store experiment code i
 6. **Reproducibility Locks** - Materialize `configs/`, `manifests/`, and
    `reports/` with data splits, environment details, and compute-parity records.
    If a run is partial, mark the exact missing rows or skipped baselines.
-7. **Figures and Formulas** - Generate figures from measured CSV/JSON/log
+7. **Best-of-v2/v3 Execution Contract** - Borrow AI Scientist-v2's strongest
+   structure: ideation discipline, journal-to-report continuity, real citation
+   collection, top-tier review-form self-critique, VLM-style figure/table
+   auditing, and complete venue-style manuscript skeletons. Keep AI
+   Scientist-v3's strengths: Claude/Harbor execution, lightweight instructions,
+   recoverable artifacts, strict gates, branch-specific verifier contracts, and
+   low orchestration overhead.
+8. **Figures and Formulas** - Generate figures from measured CSV/JSON/log
    artifacts. Static architecture figures are allowed, but result plots must be
    backed by measured data. Include equations for objectives, evaluation metrics,
    statistical tests, or stopping rules.
-8. **Paper Writing** - Fill `latex/template.tex` with a full empirical paper:
+9. **Paper Writing** - Fill `latex/template.tex` with a full empirical paper:
    related work, method, experimental setup, results, ablations, limitations,
    and conclusion. Claims must match the measured evidence actually produced.
-9. **Companion Explanation** - Write `manuscript_explanation.md` with the run
+10. **Companion Explanation** - Write `manuscript_explanation.md` with the run
    provenance: where results live, which baselines ran, which failed or were
    skipped, and what would be required to extend the evidence.
-10. **Static Paper-Quality Audit** - Run
+11. **Static Paper-Quality Audit** - Run
     `python3 scripts/audit_paper_quality.py --app-dir .` when available. Repair
     failures before final review; adapt the manuscript rather than weakening the
     audit.
-11. **Compile and Export** - Run `bash scripts/compile_latex.sh latex/` and fix
+12. **Compile and Export** - Run `bash scripts/compile_latex.sh latex/` and fix
     LaTeX or DOCX conversion errors. The compiled `latex/template.pdf` and
     converted `latex/template.docx` are required.
-12. **Claude Style Pass** - When Claude Code is the active agent, run
+13. **Claude Style Pass** - When Claude Code is the active agent, run
     `bash scripts/run_claude_style_audit.sh . latex/template.tex reviews/style_audit.md`
     when available, then apply only edits that improve clarity without softening
     empirical limitations.
-13. **Reviewer Pipeline** - Run
+14. **Reviewer Pipeline** - Run
     `REVIEWER_MODE=ensemble FINAL_GATE_REVIEWER=1 bash scripts/submit_for_review.sh latex/template.tex .`
     when reviewer tooling is available. Treat reviewer output as a gate on
     scientific quality, reproducibility, citation validity, and claim/evidence fit.
-14. **Final Area-Chair Gate** - If the gate says `Repair Before Finish` or
+15. **Final Area-Chair Gate** - If the gate says `Repair Before Finish` or
     `Reject`, return to the named upstream artifact, rerun the necessary
     experiment or repair, regenerate paper artifacts, and repeat the gate.
 
@@ -181,6 +188,13 @@ Scores are 1-5, where 5 is strongest.
   blocker instead of filling the gap with forecasts.
 - Keep result artifacts machine-readable; final paper tables should be traceable
   to `results/`, `configs/`, `manifests/`, and `reports/`.
+- If the local machine cannot run the required experiment suite, run only
+  workflow/static verification, record the hardware blocker, and do not claim
+  the normal empirical branch is fully validated.
 - Save `experiment_review.md`, `review.json`, measured `results/`, at least one
   figure, `manuscript_explanation.md`, `latex/template.tex`,
   `latex/template.pdf`, and `latex/template.docx` before finishing.
+- Before committing workflow changes on this branch, run
+  `CUSTOMER_WORKFLOW_MODE=normal-experiment bash scripts/verify_customer_workflow.sh`.
+  This verifies scripts and branch contracts; it does not replace a hardware-
+  backed Harbor run with measured `results/`.

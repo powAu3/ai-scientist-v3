@@ -16,6 +16,17 @@ Customer branch names are part of the workflow contract:
 
 See `docs/customer-branches.md` for the branch-level contract.
 
+Before committing either customer branch, run the static workflow verifier:
+
+```bash
+CUSTOMER_WORKFLOW_MODE=normal-experiment bash scripts/verify_customer_workflow.sh
+CUSTOMER_WORKFLOW_MODE=review-backed bash scripts/verify_customer_workflow.sh
+```
+
+On low-compute machines, the normal-experiment command only verifies scripts,
+tests, and workflow contracts. Full empirical verification still requires a
+hardware-backed run that creates measured artifacts under `results/`.
+
 ## The Bitter Lesson Applied
 
 v2 used ~5000 lines of Python to orchestrate a 4-stage BFS tree search with hardcoded stages, explicit node selection, LLM-evaluated completion criteria, and manual parallelism. v3 deletes all of that. Claude Code already is a tree search agent — it writes code, sees errors, fixes them, tries alternatives, remembers what worked.
@@ -31,6 +42,13 @@ v2 used ~5000 lines of Python to orchestrate a 4-stage BFS tree search with hard
 | `token_tracker.py` — usage tracking | `--max-budget-usd` flag |
 | `agents/*.py` — Python wrappers | Skills (SKILL.md files) |
 | `prompts/*.yaml` — prompt templates | Instructions in SKILL.md + CLAUDE.md |
+
+The customer branches keep the best practical parts of v2 instead of copying its
+full orchestrator: ideation discipline, journal-to-report continuity,
+review-form self-critique, VLM-style figure/table review, real-citation
+collection, and complete venue-style manuscript skeletons. v3 remains the
+execution shell: Claude/Harbor, small instruction files, artifact snapshots,
+review gates, and branch-specific verifier contracts.
 
 ## Quick Start
 

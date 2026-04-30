@@ -138,6 +138,12 @@ small hyperparameter grids, and execute ablations only when required by the idea
 and compatible with available compute, credentials, storage, and licenses. Keep
 the run bounded and evidence-focused.
 
+If the current machine cannot run the required experiment suite, do not
+manufacture a normal empirical paper. Record the blocker in `results/failures.md`
+and `manuscript_explanation.md`, preserve any partial logs, and leave the final
+empirical claims downgraded until a hardware-backed run produces measured rows
+under `results/`.
+
 ## Required Paper Work
 
 Write and compile:
@@ -161,6 +167,14 @@ Use an AI Scientist-v2-style empirical manuscript structure:
   stopping rule;
 - explicit limitations for missing baselines, failed runs, small compute, or
   incomplete datasets.
+
+Borrow AI Scientist-v2's strongest habits without reintroducing its heavy Python
+orchestrator: ideation discipline, journal-to-report continuity, real citation
+collection, top-tier reviewer self-critique, VLM-style figure/table auditing,
+complete venue-style paper structure, and explicit strong-baseline comparisons.
+Keep AI Scientist-v3's strengths: Claude/Harbor execution, lightweight
+instructions, recoverable artifacts, strict gates, versioned snapshots, and low
+orchestration overhead.
 
 Also generate `manuscript_explanation.md` as a companion provenance note. It
 should point to `results/`, `configs/`, `manifests/`, `reports/`, and `figures/`;
