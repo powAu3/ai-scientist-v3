@@ -264,6 +264,9 @@ done
 # Pass AGENT_TYPE to the container so submit_for_review.sh knows which CLI to use
 echo "AGENT_TYPE=$AGENT_TYPE" >> "$ENV_DIR/.env"
 
+# Make the branch verifier contract explicit inside Harbor.
+echo "RESEARCH_RUN_MODE=full-experiment" >> "$ENV_DIR/.env"
+
 # Force ensemble reviewer mode (override any stale value in .env)
 echo "REVIEWER_MODE=ensemble" >> "$ENV_DIR/.env"
 
@@ -495,6 +498,7 @@ echo "  Idea:    $IDEA_JSON"
 echo "  Model:   $MODEL"
 echo "  Timeout: ${TIMEOUT}s"
 echo "  Env:     ${ENV_TYPE:-docker}"
+echo "  Mode:    full-experiment"
 if [[ "$USE_UPSTREAM_AGENT" == "1" ]]; then
     echo "  Agent:   $AGENT_TYPE (upstream)"
 else

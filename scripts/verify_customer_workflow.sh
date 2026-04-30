@@ -28,6 +28,38 @@ echo "Customer workflow mode: $MODE"
 echo "Repository: $ROOT"
 echo ""
 
+require_text() {
+    local file="$1"
+    local pattern="$2"
+    local description="$3"
+
+    if grep -Eiq "$pattern" "$file" 2>/dev/null; then
+        echo "  OK: $description"
+    else
+        echo "  MISSING: $description ($file)" >&2
+        exit 1
+    fi
+}
+
+echo "== Customer branch contract =="
+require_text "docs/customer-branches.md" "AI Scientist-v2|AI Scientist-v3" "v2/v3 synthesis is documented"
+require_text "README.md" "scripts/verify_customer_workflow.sh" "README points to the static verifier"
+if [ "$MODE" = "normal-experiment" ]; then
+    require_text "docs/customer-branches.md" "customer-normal-experiment-mode" "normal branch name is documented"
+    require_text ".claude/CLAUDE.md" "results/measured_results.csv" "Claude instructions require measured results"
+    require_text "harbor-task/instruction.md.template" "results/measured_results.csv" "Harbor task requires measured CSV"
+    require_text "harbor-task/tests/test.sh" "measured_data_valid" "Harbor verifier checks measured data"
+    require_text "run.sh" "RESEARCH_RUN_MODE=full-experiment" "run.sh exports full-experiment verifier mode"
+    require_text "docs/customer-branches.md" "full normal run.*results|measured artifacts under .?results" "docs preserve hardware-backed validation boundary"
+else
+    require_text "docs/customer-branches.md" "customer-review-backed-paper-mode" "review-backed branch name is documented"
+    require_text ".claude/CLAUDE.md" "Do not run training|Do not run training, benchmarking" "Claude instructions forbid experiments"
+    require_text "harbor-task/instruction.md.template" "must \\*\\*not\\*\\* run training|do not run experiments" "Harbor task forbids experiments"
+    require_text "harbor-task/tests/test.sh" "predicted_data_valid" "Harbor verifier checks predicted data"
+    require_text "docs/customer-branches.md" "must not claim that experiments were executed|Do not run training" "docs preserve no-experiment boundary"
+fi
+echo ""
+
 echo "== Infrastructure tests =="
 bash tests/test_infrastructure.sh
 

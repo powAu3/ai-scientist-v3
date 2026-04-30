@@ -16,11 +16,10 @@ Customer branch names are part of the workflow contract:
 
 See `docs/customer-branches.md` for the branch-level contract.
 
-Before committing either customer branch, run the static workflow verifier:
+Before committing this customer branch, run the static workflow verifier:
 
 ```bash
 CUSTOMER_WORKFLOW_MODE=normal-experiment bash scripts/verify_customer_workflow.sh
-CUSTOMER_WORKFLOW_MODE=review-backed bash scripts/verify_customer_workflow.sh
 ```
 
 On low-compute machines, the normal-experiment command only verifies scripts,
