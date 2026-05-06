@@ -148,15 +148,33 @@ manuscript_explanation.md
 ```
 
 The CSV must contain predicted or expected values/rankings, not measured results.
-Recommended columns:
+Required columns:
 
 ```text
-scenario,dataset_bucket,method,metric,predicted_value,uncertainty,assumption,rationale
+scenario,dataset_bucket,protocol_surface,comparison_role,method,metric,predicted_value,uncertainty,assumption,rationale
 ```
 
-If useful, add columns such as `evidence_status`, `calibration_source`, and
+Also include `evidence_status`, `calibration_source`, and
 `replacement_trigger`. Use conservative, literature-calibrated SOTA estimates
 rather than implausible wins.
+Keep the repaired protocol, prediction CSV, and visible paper tables on one
+evidence contract. The CSV is the source of truth: every visible comparison row
+in the manuscript must be traceable to a CSV row, and every CSV row must declare
+whether it is a primary detection surface, auxiliary segmentation/stress-test
+surface, speed/deployment check, or ablation placeholder through
+`protocol_surface` and `comparison_role`.
+For the supplied road-crack YOLO idea, use RDD2022 as the default primary
+matched-budget detection surface. Treat Crack500 and CFD as auxiliary
+segmentation/thin-crack stress-test surfaces unless `revised_experiment_protocol.md`
+explicitly redefines Crack500 detection as part of the primary contract. Do not
+let the protocol say one primary surface while the CSV or manuscript table shows
+another.
+Ground road-crack papers with direct dataset and baseline anchors, including
+RDD2022, Crack500, CFD, DeepCrack, FPHBN, YOLO-family detectors, RT-DETR, and the
+official Ultralytics YOLOv8 documentation/repository when YOLOv8 is used. If a
+model family lacks a peer-reviewed canonical paper, say so in the literature
+matrix and cite the official repository or documentation rather than inventing a
+paper citation.
 
 Generate the forecast chart and any static protocol/design figures through repo
 scripts rather than manual plotting. Keep figure titles and table names
@@ -191,6 +209,8 @@ These files are schema/hash lock templates for future populated manifests,
 environment locks, and compute-parity reports. They must not be described as
 downloaded datasets or measured experiment outputs in the current low-compute
 run.
+Manifest CSV headers, `manifests/README.md`, and `manifests/manifest_lock.json`
+must agree exactly on the lock schema, including `dataset_version`.
 
 Include at least one mathematical formula in the paper, such as a gate score,
 expected utility, crossover criterion, or planned statistical test. The formula

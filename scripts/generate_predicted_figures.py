@@ -153,12 +153,12 @@ def draw_benchmark_matrix_figure(plt, output: Path) -> None:
         [3, 3, 3, 3, 3],
     ]
 
-    fig, ax = plt.subplots(figsize=(7.8, 4.8), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(8.8, 5.8), constrained_layout=True)
     image = ax.imshow(values, cmap="YlGnBu", vmin=0, vmax=3)
     ax.set_xticks(range(len(columns)), labels=columns)
     ax.set_yticks(range(len(methods)), labels=methods)
-    ax.tick_params(axis="both", labelsize=8)
-    ax.set_title("Planned Benchmark Coverage Matrix", fontsize=12, weight="bold")
+    ax.tick_params(axis="both", labelsize=9)
+    ax.set_title("Planned Benchmark Coverage Matrix", fontsize=13, weight="bold")
 
     for row_idx, row in enumerate(values):
         for col_idx, value in enumerate(row):
@@ -173,14 +173,14 @@ def draw_benchmark_matrix_figure(plt, output: Path) -> None:
                 weight="bold",
             )
 
-    cbar = fig.colorbar(image, ax=ax, shrink=0.82)
-    cbar.set_label("0-3 protocol coverage priority, not performance", fontsize=8)
-    ax.text(
-        -0.48,
-        len(methods) + 0.05,
+    cbar = fig.colorbar(image, ax=ax, shrink=0.86)
+    cbar.set_label("0-3 protocol coverage priority, not performance", fontsize=9)
+    fig.text(
+        0.5,
+        0.02,
         "Cells encode planned coverage pressure for the evaluation contract; they are not measured or forecast scores.",
-        transform=ax.transData,
-        fontsize=8,
+        ha="center",
+        fontsize=8.5,
         color="#555555",
     )
     output.parent.mkdir(parents=True, exist_ok=True)

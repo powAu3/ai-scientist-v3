@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import re
 from collections import Counter
 from pathlib import Path
@@ -52,6 +53,35 @@ def bullet_list(values: list[str]) -> str:
     return "".join(f"- {value}\n" for value in values)
 
 
+def has_non_ascii(value: str) -> bool:
+    return any(ord(char) > 127 for char in value)
+
+
+def keyword_mapping_lines(root: Path) -> list[str]:
+    lines: list[str] = []
+    ideas_dir = root / "ideas"
+    if not ideas_dir.exists():
+        return lines
+    for idea_path in sorted(ideas_dir.glob("*.json")):
+        try:
+            data = json.loads(idea_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        keywords = data.get("Keywords") or data.get("keywords") or []
+        translations = data.get("Keyword Translations") or data.get("keyword_translations") or []
+        if not isinstance(keywords, list) or not isinstance(translations, list):
+            continue
+        if len(keywords) != len(translations):
+            continue
+        for keyword, translation in zip(keywords, translations):
+            if isinstance(keyword, str) and isinstance(translation, str) and has_non_ascii(keyword):
+                lines.append(
+                    f"- Original keyword from `{idea_path.relative_to(root)}`: "
+                    f"`{keyword}` -> LaTeX keyword translation: `{translation}`"
+                )
+    return lines
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--app-dir", default=".", help="Application root directory")
@@ -82,7 +112,17 @@ def main() -> int:
 
     sections = re.findall(r"\\section\{([^}]+)\}", tex)
     figure_count = len(re.findall(r"\\includegraphics", tex))
-    table_count = len(re.findall(r"\\begin\{table\}", tex))
+    table_count = len(re.findall(r"\\begin\{table\*?\}", tex))
+    keyword_lines = keyword_mapping_lines(root)
+    keyword_section = ""
+    if keyword_lines:
+        keyword_section = (
+            "\n## Keyword Mapping\n\n"
+            + "\n".join(keyword_lines)
+            + "\n- Reason for translation: the PDF uses ASCII keyword text in "
+            "`latex/template.tex` for pdflatex compatibility, while this companion "
+            "note preserves the original keyword-to-translation mapping.\n"
+        )
 
     note = f"""# Manuscript Companion Explanation
 
@@ -106,10 +146,10 @@ completed training or benchmark run.
 
 The main manuscript may use normal table names such as "Comparison on
 road-crack benchmarks" for layout realism, but the underlying result rows remain
-review-backed forecasts until a real benchmark replaces them. Any `+/-` ranges
-in the paper are planning tolerances for future runs, not measured variance,
+review-backed forecasts until a real benchmark replaces them. Any planning ranges
+in the paper are future-run tolerances, not measured variance,
 confidence intervals, or seed statistics. In the current manuscript table, these
-are shown as planning ranges rather than `+/-` error bars.
+are shown as explicit range text rather than `+/-` error bars.
 
 The contribution should be read primarily as a pre-registered protocol and
 falsifiable evaluation contract. The proposed detector architecture reuses known
@@ -124,6 +164,7 @@ hard-negative auditing, and deployment constraints.
 - Metrics represented: {top_counts(rows, 'metric', None)}
 - Dataset buckets represented: {top_counts(rows, 'dataset_bucket', None)}
 - Calibration sources represented: {len(calibration_sources)}
+{keyword_section}
 
 ## Replacement Triggers
 

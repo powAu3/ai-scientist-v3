@@ -80,6 +80,13 @@ experiments.
    status such as `protocol-estimated`, `literature-calibrated forecast`, or
    `hypothesized`; never call it fake and never present it as measured.
    Save the prediction dataset to `predicted_results/predicted_results.csv`.
+   The CSV must include `protocol_surface`, `comparison_role`,
+   `evidence_status`, `calibration_source`, and `replacement_trigger` columns so
+   the repaired protocol, visible manuscript table, and machine-readable
+   forecast surface cannot silently diverge. For the road-crack YOLO idea, use
+   RDD2022 as the default primary matched-budget detection surface, while
+   Crack500 and CFD are auxiliary segmentation/thin-crack stress-test surfaces
+   unless `revised_experiment_protocol.md` explicitly declares otherwise.
 5. **Figures and Formulas** - Generate the forecast chart and any static
    protocol/design figures through repo scripts rather than manual plotting. Keep
    raster figure titles and table titles professional; use captions, surrounding
@@ -100,7 +107,9 @@ experiments.
    zero-row templates do not claim dataset execution; they lock manifest schema,
    filenames, hashes, environment-lock placeholders, compute-parity report
    schema, and replacement points for future populated manifests and measured
-   runs.
+   runs. Manifest CSV headers, `manifests/README.md`, and
+   `manifests/manifest_lock.json` must agree exactly on the lock schema,
+   including `dataset_version`.
 7. **Paper Framing** - Write the paper as a protocol/design-analysis paper with
    predicted results, not a measured empirical-results paper or a method-first
    detector paper. The title, abstract, introduction, and conclusion must lead
@@ -245,6 +254,10 @@ Scores are 1-5, where 5 is strongest.
 - Write a substantive manuscript, not an artifact stub. Aim for roughly 2,000+
   words unless the idea is unusually narrow.
 - Include real citations in `latex/references.bib` and cite them from the paper.
+  For road-crack work, directly ground RDD2022, Crack500, CFD, DeepCrack, FPHBN,
+  YOLO-family detectors, RT-DETR, and official Ultralytics YOLOv8
+  documentation/repository when YOLOv8 is used. If a model family lacks a
+  peer-reviewed canonical paper, say so rather than inventing one.
 - Include at least one professional table, at least one generated figure, and at
   least one equation that supports the review/prediction logic.
 - Include a strong comparative evaluation plan. Cover same-family baselines,

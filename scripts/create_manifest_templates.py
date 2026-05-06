@@ -23,6 +23,7 @@ from pathlib import Path
 MANIFEST_SCHEMA = [
     "image_id",
     "source_dataset",
+    "dataset_version",
     "scene_or_route_id",
     "country_or_region",
     "annotation_type",
