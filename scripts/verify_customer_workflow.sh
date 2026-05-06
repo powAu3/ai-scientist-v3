@@ -15,9 +15,11 @@ case "$MODE" in
 esac
 
 cd "$ROOT"
+export PYTHONPYCACHEPREFIX="${PYTHONPYCACHEPREFIX:-/private/tmp/ai-scientist-v3-pycache}"
 
 echo "Customer workflow mode: $MODE"
 echo "Repository: $ROOT"
+echo "Python pycache: $PYTHONPYCACHEPREFIX"
 echo ""
 
 require_text() {

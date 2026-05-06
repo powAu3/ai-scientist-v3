@@ -82,6 +82,10 @@ paper_has_formula() {
     grep -Eq '\\begin\{equation\}|\\begin\{align\}|\\\[|\\\(|\$\$' "$PAPER_TEX" 2>/dev/null
 }
 
+paper_has_keywords() {
+    grep -Eiq '\\keywords[[:space:]]*\{|Keywords[[:space:]]*:|Key words[[:space:]]*:' "$PAPER_TEX" 2>/dev/null
+}
+
 docx_valid() {
     python3 - "$PAPER_DOCX" <<'PY' 2>/dev/null
 import sys
@@ -291,11 +295,11 @@ else
     echo "MISSING: predicted data, chart artifact, or paper figure reference"
 fi
 
-if [ -s "$PAPER_TEX" ] && [ -s "$PAPER_PDF" ] && paper_declares_prediction_mode && paper_has_formula; then
+if [ -s "$PAPER_TEX" ] && [ -s "$PAPER_PDF" ] && paper_declares_prediction_mode && paper_has_formula && paper_has_keywords; then
     SCORE=$((SCORE + 1))
-    echo "OK: paper source, compiled PDF, prediction disclosure, and formula"
+    echo "OK: paper source, compiled PDF, prediction disclosure, formula, and keywords"
 else
-    echo "MISSING: paper source, compiled PDF, prediction disclosure, or formula"
+    echo "MISSING: paper source, compiled PDF, prediction disclosure, formula, or keywords"
 fi
 
 if docx_valid; then

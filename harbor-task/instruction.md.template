@@ -35,6 +35,12 @@ evidence that experiments were executed.
 Treat the idea as a proposal. It may be incomplete or flawed; your job is to
 turn it into an honest paper that explains the idea, reviews whether the proposed
 experiments would be valid, and specifies what should be fixed before execution.
+If the idea contains `Keywords`, `Keyword Translations`, or other explicit
+keyword fields, preserve them as a first-class paper constraint. The paper must
+include a normal scientific keyword line near the abstract. If the supplied
+keywords are non-ASCII and the LaTeX template is configured for pdflatex, use
+ASCII translations in `latex/template.tex` so compilation remains reliable, and
+record the original keyword-to-translation mapping in `manuscript_explanation.md`.
 
 ## Required Review Work
 
@@ -214,6 +220,8 @@ artifact stub. The main paper should look like a serious workshop submission:
 - at least one professional table and at least one generated figure;
 - an impact/ethics or deployment-risk paragraph when the domain affects safety,
   infrastructure, maintenance, or public services;
+- a concise keyword line near the abstract, using ASCII translations when
+  necessary for pdflatex compatibility;
 - an appendix or supplementary section when details do not fit in the main text.
 
 Borrow the paper organization discipline from AI Scientist-v2, but preserve this

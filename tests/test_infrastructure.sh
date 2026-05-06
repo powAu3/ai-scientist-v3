@@ -178,11 +178,12 @@ else
 fi
 if grep -q "docx_valid" "$TEST_SH" 2>/dev/null && \
    grep -q "paper_quality_audit" "$TEST_SH" 2>/dev/null && \
+   grep -q "paper_has_keywords" "$TEST_SH" 2>/dev/null && \
    grep -q "write_figure_provenance" "$TEST_SH" 2>/dev/null && \
    grep -q "review_artifacts_valid" "$TEST_SH" 2>/dev/null; then
-    pass "test.sh checks DOCX, paper-quality audit, figure provenance, and review artifacts"
+    pass "test.sh checks DOCX, keywords, paper-quality audit, figure provenance, and review artifacts"
 else
-    fail "test.sh does NOT check DOCX, paper-quality audit, figure provenance, and review artifacts"
+    fail "test.sh does NOT check DOCX, keywords, paper-quality audit, figure provenance, and review artifacts"
 fi
 
 SUBMIT="$REPO_ROOT/scripts/submit_for_review.sh"

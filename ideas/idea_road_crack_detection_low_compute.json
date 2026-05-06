@@ -1,0 +1,10 @@
+{
+  "Name": "road_crack_detection_low_compute",
+  "Title": "Review-Backed Protocol for Deep Learning Road Crack Detection",
+  "Keywords": ["深度学习", "道路裂缝检测"],
+  "Keyword Translations": ["deep learning", "road crack detection"],
+  "Short Hypothesis": "A YOLO-family crack detector with crack-aware feature fusion, thin-structure losses, and hard-negative evaluation is likely to improve road crack detection robustness, but the experimental plan must be reviewed before any claims are made.",
+  "Related Work": "The paper should ground the protocol in real road-damage and crack-detection literature, including RDD-style road damage datasets, Crack500/CFD-style crack segmentation datasets, YOLO-family object detectors, transformer detectors such as RT-DETR, and crack-specific deep models such as DeepCrack and FPHBN.",
+  "Low Compute Constraint": "Do not run training or benchmarking. Produce a strict experiment rationality review, a repaired protocol if needed, conservative predicted outcomes, figures, formulas, real citations, PDF, DOCX, and reviewer artifacts.",
+  "Target Manuscript": "A serious protocol/design-analysis paper for a deep learning road crack detection study. The visible LaTeX keyword line should use the English translations to avoid pdflatex CJK failures, while manuscript_explanation.md should preserve the original Chinese keywords and their mapping."
+}

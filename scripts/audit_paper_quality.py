@@ -66,6 +66,12 @@ DISCLOSURE_TERMS = [
     "hypothesis",
 ]
 
+KEYWORD_PATTERNS = [
+    r"\\keywords\s*\{",
+    r"\bKeywords\s*:",
+    r"\bKey words\s*:",
+]
+
 
 def read_text(path: Path) -> str:
     try:
@@ -137,6 +143,9 @@ def main() -> int:
     ]
     if missing_sections:
         failures.append("missing required sections: " + ", ".join(missing_sections))
+
+    if not any(re.search(pattern, tex, re.I) for pattern in KEYWORD_PATTERNS):
+        failures.append("paper is missing a keyword line near the abstract")
 
     comparison_count = count_present_terms(tex, COMPARISON_TERMS)
     if comparison_count < 8:
