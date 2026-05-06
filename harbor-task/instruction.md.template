@@ -143,7 +143,8 @@ Create:
 
 ```text
 predicted_results/predicted_results.csv
-figures/<one-or-more>.png
+figures/figure_spec.json
+figures/<six-visual-stack>.png
 manuscript_explanation.md
 ```
 
@@ -176,6 +177,17 @@ model family lacks a peer-reviewed canonical paper, say so in the literature
 matrix and cite the official repository or documentation rather than inventing a
 paper citation.
 
+Write `figures/figure_spec.json` before generating or citing figures. It is the
+source of truth for the visual evidence stack and must include `paper_type`,
+`contribution_claim`, `system_overview`, `model_architecture`,
+`module_detail`, `mechanism_formulas`, `protocol_surfaces`, and
+`visual_evidence_panels`. The main architecture must have at least four lanes,
+ten nodes, twelve edges, a skip/auxiliary path, and a
+training/evaluation/protocol gate. The module detail must show input features,
+core operators/attention/fusion, output heads, and a loss/constraint/protocol
+connection; a simple `input -> module -> output` chain must be repaired before
+paper writing continues.
+
 Generate the forecast chart and any static protocol/design figures through repo
 scripts rather than manual plotting. Keep figure titles and table names
 professional so the PDF looks like a serious paper. Use captions, nearby text,
@@ -183,12 +195,14 @@ CSV fields, and `manuscript_explanation.md` to make the evidence status
 unambiguous; do not clutter every visual element with a large "demo" or "fake"
 label.
 For detector/model papers, one overview plot is not enough. The manuscript must
-include at least five generated visual artifacts: an overall model architecture,
-a module-level structure diagram, a mechanism/loss or equation map, a
-forecast/comparison chart, and a protocol/benchmark matrix. The figures should
-look like algorithm-paper figures, not generic decorative boxes.
+include the full six-part visual evidence stack: `system_overview.png`,
+`model_architecture.png`, `module_detail.png`, `mechanism_formula_map.png`,
+`protocol_surface_matrix.png`, and `predicted_results.png`. These figures must
+carry the paper contribution like top-conference method figures: a
+task/model/data/protocol overview, a branched architecture, module internals,
+mechanism formulas, protocol surfaces, and conservative comparison panels.
 If `scripts/generate_predicted_figures.py` exists, use it after updating the
-prediction CSV:
+figure spec and prediction CSV:
 
 ```bash
 python3 scripts/generate_predicted_figures.py --app-dir .
@@ -244,7 +258,8 @@ artifact stub. The main paper should look like a serious workshop submission:
   unusually narrow);
 - real, relevant citations in `latex/references.bib` and `\cite{...}` calls in
   the manuscript;
-- at least one professional table and at least one generated figure;
+- at least one professional table and the generated six-figure visual evidence
+  stack from `figures/figure_spec.json`;
 - an impact/ethics or deployment-risk paragraph when the domain affects safety,
   infrastructure, maintenance, or public services;
 - a concise keyword line near the abstract, using ASCII translations when
@@ -278,7 +293,7 @@ Use the paper to present:
 - the proposed experimental protocol,
 - the rationality review findings,
 - clearly labeled predicted results,
-- the predicted data table and at least one generated figure,
+- the predicted data table and the six generated visual-stack figures,
 - at least one formula defining the review or prediction criterion,
 - recommended changes before running,
 - limitations caused by not executing experiments,

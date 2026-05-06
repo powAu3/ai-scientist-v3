@@ -22,7 +22,10 @@ execution mode.
 - `preflight_repair.md` - Required when the proposed experiment is not runnable as-is
 - `revised_experiment_protocol.md` - Required repaired protocol when the gate fails
 - `predicted_results/predicted_results.csv` - Required predicted, non-measured data
-- `figures/` - Required figures made from predicted data or review scorecards
+- `figures/figure_spec.json` - Required visual-evidence specification for the
+  six-figure stack before any figure generation or paper citation
+- `figures/` - Required figures made from the figure spec, predicted data, or
+  review scorecards
 - `latex/` - ICLR 2025 workshop template; fill `latex/template.tex`
   and export `latex/template.pdf` plus `latex/template.docx`
 - `literature/` - Paper index, notes, citations, and related-work evidence
@@ -87,27 +90,40 @@ experiments.
    RDD2022 as the default primary matched-budget detection surface, while
    Crack500 and CFD are auxiliary segmentation/thin-crack stress-test surfaces
    unless `revised_experiment_protocol.md` explicitly declares otherwise.
-5. **Figures and Formulas** - Generate the forecast chart and any static
-   protocol/design figures through repo scripts rather than manual plotting. Keep
-   raster figure titles and table titles professional; use captions, surrounding
-   text, the CSV fields, and `manuscript_explanation.md` for provenance instead
-   of visually cluttering the PDF. If `scripts/generate_predicted_figures.py`
-   exists, run
+5. **Figures and Formulas** - Write `figures/figure_spec.json` before generating
+   or citing figures. Treat it as the source of truth for the visual evidence
+   stack: `paper_type`, `contribution_claim`, `system_overview`,
+   `model_architecture`, `module_detail`, `mechanism_formulas`,
+   `protocol_surfaces`, and `visual_evidence_panels` are all required. The main
+   architecture must have at least four lanes, ten nodes, twelve edges, a
+   skip/auxiliary path, and a training/evaluation/protocol gate. The module
+   detail must expose input features, core operators/attention/fusion, output
+   heads, and a loss/constraint/protocol connection; a simple
+   `input -> module -> output` chain is not acceptable.
+   Generate the forecast chart and all static protocol/design figures through
+   repo scripts rather than manual plotting. Keep raster figure titles and table
+   titles professional; use captions, surrounding text, the CSV fields, and
+   `manuscript_explanation.md` for provenance instead of visually cluttering the
+   PDF. If `scripts/generate_predicted_figures.py` exists, run
    `python3 scripts/generate_predicted_figures.py --app-dir .` after updating
-   `predicted_results/predicted_results.csv`; this prevents hand-written plotting
-   snippets from becoming hidden workflow state and gives static figures
-   reproducible regeneration instructions. If
+   `figures/figure_spec.json` and `predicted_results/predicted_results.csv`;
+   this prevents hand-written plotting snippets from becoming hidden workflow
+   state and gives static figures reproducible regeneration instructions. If
    `scripts/write_figure_provenance.py` exists, run it so static design figures
    also have source and regeneration records. Include formal criteria or
    equations in `latex/template.tex` for the gate score, expected utility,
    crossover rule, or statistical decision plan.
-   A serious algorithm-style manuscript needs more than one generic chart:
-   include at least five generated visual artifacts when the idea is a detector
-   or model paper: an overall architecture figure, a module-level figure, a
-   mechanism/loss or equation map, a forecast/comparison chart, and a protocol or
-   benchmark matrix. Include at least four display equations covering the review
-   gate plus model-side reasoning such as crack-aware fusion, thin-structure
-   loss, hard-negative weighting, forecast calibration, or the stop/go rule.
+   A serious algorithm-style manuscript needs a visual evidence stack, not one
+   generic chart. For detector/model papers, include all six generated artifacts:
+   `system_overview.png`, `model_architecture.png`, `module_detail.png`,
+   `mechanism_formula_map.png`, `protocol_surface_matrix.png`, and
+   `predicted_results.png`. These should carry the contribution claim like
+   top-conference method figures: task/model/data/protocol overview,
+   architecture with branches, module internals, mechanism formulas, protocol
+   surfaces, and conservative comparison panels. Include at least four display
+   equations covering the review gate plus model-side reasoning such as
+   crack-aware fusion, thin-structure loss, hard-negative weighting, forecast
+   calibration, or the stop/go rule.
 6. **Protocol Lock Templates** - When the repaired protocol declares
    `manifests/*.csv` files and `scripts/create_manifest_templates.py` exists,
    run `python3 scripts/create_manifest_templates.py --app-dir .`. These
@@ -272,9 +288,11 @@ Scores are 1-5, where 5 is strongest.
 - Include at least one professional table, at least one generated figure, and at
   least four equations that support both the review logic and the proposed model
   mechanism.
-- For detector/model papers, include at least five generated figure references:
-  architecture, module detail, mechanism/loss map, forecast/comparison chart, and
-  protocol/benchmark matrix.
+- For detector/model papers, first create `figures/figure_spec.json`, then
+  generate and cite all six visual-stack figures: system overview, model
+  architecture, module detail, mechanism/formula map, protocol surface matrix,
+  and predicted-results comparison chart. The audit must fail if these figures
+  are missing, too simple, or disconnected from the contribution claim.
 - Include a strong comparative evaluation plan. Cover same-family baselines,
   stronger detector baselines, crack-specific segmentation baselines, transformer
   detectors when appropriate, ablations, matched budgets, hard-negative sets,
@@ -285,7 +303,8 @@ Scores are 1-5, where 5 is strongest.
 - Be explicit that no new experiments were run.
 - Include a predicted-results section or table, clearly labeled as predicted,
   expected, or hypothesized.
-- Include at least one figure from `figures/` and at least one equation/formula.
+- Include the six-figure visual stack from `figures/` and at least one
+  equation/formula.
 - Include or reference the predicted data from `predicted_results/predicted_results.csv`.
 - Make the title, abstract, introduction, and conclusion protocol-first. A named
   detector can be present only as the candidate instantiation being audited.
@@ -339,7 +358,8 @@ Scores are 1-5, where 5 is strongest.
 - If the original plan fails the gate, produce preflight repair artifacts before
   writing the final paper.
 - Save `experiment_review.md`, `review.json`, `predicted_results/predicted_results.csv`,
-  at least one `figures/*.png`, `manuscript_explanation.md`,
+  `figures/figure_spec.json`, the six generated visual-stack PNGs,
+  `manuscript_explanation.md`,
   `latex/template.tex`, `latex/template.pdf`, and `latex/template.docx`
   before finishing.
 - Before committing workflow changes on this branch, run

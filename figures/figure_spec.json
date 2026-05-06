@@ -1,0 +1,447 @@
+{
+  "paper_type": "review_backed_detector_protocol",
+  "contribution_claim": "A low-compute review-backed manuscript pipeline for a deep-learning road-crack detector that uses strict protocol repair, conservative forecast evidence, and a visual evidence stack before any future training run.",
+  "system_overview": {
+    "nodes": [
+      {
+        "id": "keyword_task",
+        "label": "Deep learning road-crack detection task"
+      },
+      {
+        "id": "candidate",
+        "label": "YOLO-style crack detector proposal"
+      },
+      {
+        "id": "strict_review",
+        "label": "Experiment rationality review"
+      },
+      {
+        "id": "repair",
+        "label": "Preflight protocol repair"
+      },
+      {
+        "id": "manifest_lock",
+        "label": "Manifest and budget locks"
+      },
+      {
+        "id": "forecast",
+        "label": "Literature-calibrated forecast table"
+      },
+      {
+        "id": "figure_stack",
+        "label": "Visual evidence stack"
+      },
+      {
+        "id": "future_run",
+        "label": "Future measured replacement run"
+      }
+    ],
+    "edges": [
+      {
+        "source": "keyword_task",
+        "target": "candidate"
+      },
+      {
+        "source": "candidate",
+        "target": "strict_review"
+      },
+      {
+        "source": "strict_review",
+        "target": "repair",
+        "kind": "protocol"
+      },
+      {
+        "source": "repair",
+        "target": "manifest_lock"
+      },
+      {
+        "source": "manifest_lock",
+        "target": "forecast"
+      },
+      {
+        "source": "forecast",
+        "target": "figure_stack"
+      },
+      {
+        "source": "figure_stack",
+        "target": "future_run",
+        "kind": "replacement"
+      }
+    ]
+  },
+  "model_architecture": {
+    "lanes": [
+      {
+        "id": "input_scale_lane",
+        "label": "Data and multi-scale inputs",
+        "nodes": [
+          {
+            "id": "road_image",
+            "label": "Road surface image"
+          },
+          {
+            "id": "p3_texture",
+            "label": "P3 fine crack texture"
+          },
+          {
+            "id": "p4_context",
+            "label": "P4 defect context"
+          }
+        ]
+      },
+      {
+        "id": "backbone_lane",
+        "label": "Backbone and neck",
+        "nodes": [
+          {
+            "id": "stem",
+            "label": "Lightweight YOLO stem"
+          },
+          {
+            "id": "context_encoder",
+            "label": "Context encoder"
+          },
+          {
+            "id": "fpn_neck",
+            "label": "Multi-scale neck"
+          }
+        ]
+      },
+      {
+        "id": "mechanism_lane",
+        "label": "Crack-aware mechanisms",
+        "nodes": [
+          {
+            "id": "scale_align",
+            "label": "Scale alignment"
+          },
+          {
+            "id": "elongation_attention",
+            "label": "Elongation attention"
+          },
+          {
+            "id": "crack_fusion",
+            "label": "Crack-aware feature fusion"
+          }
+        ]
+      },
+      {
+        "id": "head_protocol_lane",
+        "label": "Heads and evaluation gate",
+        "nodes": [
+          {
+            "id": "detect_head",
+            "label": "Detection head"
+          },
+          {
+            "id": "thin_head",
+            "label": "Thin-structure auxiliary head"
+          },
+          {
+            "id": "protocol_gate",
+            "label": "Training/evaluation protocol gate",
+            "role": "protocol_gate"
+          }
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "road_image",
+        "target": "stem"
+      },
+      {
+        "source": "stem",
+        "target": "p3_texture"
+      },
+      {
+        "source": "stem",
+        "target": "p4_context"
+      },
+      {
+        "source": "p3_texture",
+        "target": "context_encoder"
+      },
+      {
+        "source": "p4_context",
+        "target": "context_encoder"
+      },
+      {
+        "source": "context_encoder",
+        "target": "fpn_neck"
+      },
+      {
+        "source": "fpn_neck",
+        "target": "scale_align"
+      },
+      {
+        "source": "scale_align",
+        "target": "elongation_attention"
+      },
+      {
+        "source": "elongation_attention",
+        "target": "crack_fusion"
+      },
+      {
+        "source": "crack_fusion",
+        "target": "detect_head"
+      },
+      {
+        "source": "crack_fusion",
+        "target": "thin_head"
+      },
+      {
+        "source": "thin_head",
+        "target": "protocol_gate",
+        "kind": "protocol"
+      },
+      {
+        "source": "p3_texture",
+        "target": "crack_fusion",
+        "kind": "skip"
+      },
+      {
+        "source": "protocol_gate",
+        "target": "elongation_attention",
+        "kind": "auxiliary"
+      }
+    ]
+  },
+  "module_detail": {
+    "nodes": [
+      {
+        "id": "p3_input",
+        "label": "P3 fine texture input",
+        "role": "input"
+      },
+      {
+        "id": "p4_input",
+        "label": "P4 mid-scale input",
+        "role": "input"
+      },
+      {
+        "id": "p5_input",
+        "label": "P5 context input",
+        "role": "input"
+      },
+      {
+        "id": "align",
+        "label": "1x1 scale alignment operator",
+        "role": "operator"
+      },
+      {
+        "id": "horizontal_pool",
+        "label": "Horizontal strip attention",
+        "role": "attention"
+      },
+      {
+        "id": "vertical_pool",
+        "label": "Vertical strip attention",
+        "role": "attention"
+      },
+      {
+        "id": "diagonal_probe",
+        "label": "Diagonal edge probe",
+        "role": "attention"
+      },
+      {
+        "id": "fusion_gate",
+        "label": "Elongation-gated feature fusion",
+        "role": "fusion"
+      },
+      {
+        "id": "residual_merge",
+        "label": "Fine-scale residual merge",
+        "role": "fusion"
+      },
+      {
+        "id": "detect_output",
+        "label": "Detection output head",
+        "role": "output_head"
+      },
+      {
+        "id": "thin_output",
+        "label": "Thin-crack auxiliary output head",
+        "role": "output_head"
+      },
+      {
+        "id": "loss_link",
+        "label": "Boundary, continuity, and budget constraint losses",
+        "role": "loss_constraint"
+      },
+      {
+        "id": "protocol_budget",
+        "label": "Latency and false-positive protocol gate",
+        "role": "protocol_gate"
+      }
+    ],
+    "edges": [
+      {
+        "source": "p3_input",
+        "target": "align"
+      },
+      {
+        "source": "p4_input",
+        "target": "align"
+      },
+      {
+        "source": "p5_input",
+        "target": "align"
+      },
+      {
+        "source": "align",
+        "target": "horizontal_pool"
+      },
+      {
+        "source": "align",
+        "target": "vertical_pool"
+      },
+      {
+        "source": "align",
+        "target": "diagonal_probe"
+      },
+      {
+        "source": "horizontal_pool",
+        "target": "fusion_gate"
+      },
+      {
+        "source": "vertical_pool",
+        "target": "fusion_gate"
+      },
+      {
+        "source": "diagonal_probe",
+        "target": "fusion_gate"
+      },
+      {
+        "source": "fusion_gate",
+        "target": "residual_merge",
+        "kind": "skip"
+      },
+      {
+        "source": "residual_merge",
+        "target": "detect_output"
+      },
+      {
+        "source": "residual_merge",
+        "target": "thin_output"
+      },
+      {
+        "source": "loss_link",
+        "target": "fusion_gate",
+        "kind": "constraint"
+      },
+      {
+        "source": "protocol_budget",
+        "target": "thin_output",
+        "kind": "protocol"
+      }
+    ]
+  },
+  "mechanism_formulas": [
+    {
+      "id": "review_gate",
+      "name": "Review gate",
+      "formula": "G_review = I[S_sound >= tau_s and S_leak >= tau_l and B <= B_max]",
+      "links": [
+        "protocol_gate",
+        "strict_review"
+      ],
+      "note": "Blocks paper flow when the proposal needs protocol repair."
+    },
+    {
+      "id": "fusion",
+      "name": "Crack-aware fusion",
+      "formula": "F_c = P3 + sum_s alpha_s * W_s(P_s), alpha_s = sigmoid(g_s(E_s))",
+      "links": [
+        "scale_align",
+        "elongation_attention",
+        "crack_fusion"
+      ],
+      "note": "Connects multi-scale features to elongated crack structure."
+    },
+    {
+      "id": "thin_loss",
+      "name": "Thin-structure loss",
+      "formula": "L_thin = L_det + lambda_b L_boundary + lambda_c L_continuity",
+      "links": [
+        "thin_head",
+        "loss_link"
+      ],
+      "note": "Constrains narrow crack boundaries and continuity."
+    },
+    {
+      "id": "forecast",
+      "name": "Forecast calibration",
+      "formula": "m_hat = m_lit + Delta_module - rho_risk, U = [m_hat - sigma, m_hat + sigma]",
+      "links": [
+        "forecast",
+        "predicted_results.csv"
+      ],
+      "note": "Keeps comparison panels conservative until measured replacement."
+    },
+    {
+      "id": "stop_go",
+      "name": "Future stop/go rule",
+      "formula": "Go = I[Delta_mAP50-95 > 0.015 and FP_image < tau_fp and FPS >= tau_fps]",
+      "links": [
+        "protocol_gate",
+        "future_run"
+      ],
+      "note": "Defines the decision boundary for the normal experiment branch."
+    }
+  ],
+  "protocol_surfaces": [
+    {
+      "name": "Primary detection",
+      "role": "RDD2022 matched-budget detection",
+      "gate": "same resolution, same budget, same split manifest",
+      "repair_trigger": "missing dataset_version or budget parity report"
+    },
+    {
+      "name": "Thin-crack stress",
+      "role": "Crack500 and CFD auxiliary segmentation check",
+      "gate": "auxiliary stress-test declaration",
+      "repair_trigger": "auxiliary surface silently promoted to primary"
+    },
+    {
+      "name": "Hard negatives",
+      "role": "shadow, sealed joint, lane-mark, stain taxonomy",
+      "gate": "manifested failure-mode labels",
+      "repair_trigger": "taxonomy missing or unbalanced"
+    },
+    {
+      "name": "Deployment speed",
+      "role": "edge-device planning check",
+      "gate": "device, image size, and batch lock",
+      "repair_trigger": "runtime claim lacks hardware lock"
+    },
+    {
+      "name": "Statistics",
+      "role": "future replacement analysis",
+      "gate": "bootstrap CI and paired test plan",
+      "repair_trigger": "no variance or effect-size rule"
+    }
+  ],
+  "visual_evidence_panels": [
+    {
+      "name": "Thin longitudinal crack",
+      "role": "protocol exemplar for continuity and boundary stress"
+    },
+    {
+      "name": "Sealed joint confusion",
+      "role": "hard-negative taxonomy exemplar"
+    },
+    {
+      "name": "Shadow edge",
+      "role": "false-positive failure mode"
+    },
+    {
+      "name": "Repair texture",
+      "role": "domain-shift exemplar"
+    },
+    {
+      "name": "Edge-device budget",
+      "role": "deployment protocol surface"
+    }
+  ]
+}

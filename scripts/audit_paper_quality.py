@@ -32,6 +32,46 @@ REQUIRED_SECTIONS = [
 MIN_GENERATED_FIGURES = 5
 MIN_DISPLAY_FORMULAS = 4
 
+CANONICAL_FIGURE_STACK = [
+    "system_overview.png",
+    "model_architecture.png",
+    "module_detail.png",
+    "mechanism_formula_map.png",
+    "protocol_surface_matrix.png",
+    "predicted_results.png",
+]
+
+FIGURE_REF_ALIASES = {
+    "model_architecture.png": ["crackyolo_architecture.png"],
+    "module_detail.png": ["crackyolo_module_detail.png"],
+    "mechanism_formula_map.png": ["crackyolo_mechanism_equations.png"],
+    "protocol_surface_matrix.png": ["planned_benchmark_matrix.png"],
+    "predicted_results.png": ["predicted_yolo_crack_results.png"],
+}
+
+REQUIRED_FIGURE_SPEC_KEYS = [
+    "paper_type",
+    "contribution_claim",
+    "system_overview",
+    "model_architecture",
+    "module_detail",
+    "mechanism_formulas",
+    "protocol_surfaces",
+    "visual_evidence_panels",
+]
+
+PROTOCOL_GATE_TERMS = [
+    "protocol",
+    "evaluation",
+    "eval",
+    "gate",
+    "budget",
+    "manifest",
+    "statistic",
+    "statistical",
+    "stop/go",
+]
+
 COMPARISON_TERMS = [
     "YOLOv8",
     "YOLOv7",
@@ -145,6 +185,130 @@ def generated_figure_failures(text: str) -> list[str]:
     for name, signals in required_signals.items():
         if not any(signal in lowered_refs for signal in signals):
             failures.append(f"paper is missing a generated {name} figure reference")
+    return failures
+
+
+def _as_list(value: object) -> list:
+    return value if isinstance(value, list) else []
+
+
+def _nested_text(value: object) -> str:
+    if isinstance(value, dict):
+        return " ".join(_nested_text(item) for item in value.values())
+    if isinstance(value, list):
+        return " ".join(_nested_text(item) for item in value)
+    return str(value)
+
+
+def _lane_nodes(model_architecture: dict) -> list[dict]:
+    nodes: list[dict] = []
+    for lane in _as_list(model_architecture.get("lanes")):
+        if isinstance(lane, dict):
+            nodes.extend(node for node in _as_list(lane.get("nodes")) if isinstance(node, dict))
+    return nodes
+
+
+def _canonical_ref_present(refs: list[str], canonical: str) -> bool:
+    basenames = {Path(ref).name for ref in refs}
+    allowed = {canonical, *FIGURE_REF_ALIASES.get(canonical, [])}
+    return bool(basenames & allowed)
+
+
+def _canonical_file_present(root: Path, canonical: str) -> bool:
+    fig_dir = root / "figures"
+    allowed = [canonical, *FIGURE_REF_ALIASES.get(canonical, [])]
+    return any((fig_dir / name).exists() for name in allowed)
+
+
+def _contains_any(text: str, terms: list[str]) -> bool:
+    lowered = text.lower()
+    return any(term.lower() in lowered for term in terms)
+
+
+def figure_spec_failures(root: Path, text: str) -> list[str]:
+    """Reject visual evidence stacks that are too shallow for model papers."""
+    failures: list[str] = []
+    spec_path = root / "figures" / "figure_spec.json"
+    if not spec_path.exists():
+        return ["figures/figure_spec.json is required for the visual evidence stack"]
+
+    try:
+        spec = json.loads(spec_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return [f"figures/figure_spec.json is invalid JSON: {exc}"]
+
+    missing_keys = [key for key in REQUIRED_FIGURE_SPEC_KEYS if key not in spec]
+    if missing_keys:
+        failures.append("figures/figure_spec.json missing required keys: " + ", ".join(missing_keys))
+
+    if not str(spec.get("paper_type", "")).strip():
+        failures.append("figure_spec paper_type must be non-empty")
+    if len(str(spec.get("contribution_claim", "")).strip()) < 30:
+        failures.append("figure_spec contribution_claim is too thin to drive claim-bearing figures")
+
+    refs = figure_refs(text)
+    for canonical in CANONICAL_FIGURE_STACK:
+        if not _canonical_ref_present(refs, canonical):
+            failures.append(f"paper must reference visual-stack figure {canonical}")
+        if not _canonical_file_present(root, canonical):
+            failures.append(f"visual-stack figure file is missing: figures/{canonical}")
+
+    system_overview = spec.get("system_overview", {})
+    if isinstance(system_overview, dict) and len(_as_list(system_overview.get("nodes"))) < 5:
+        failures.append("system_overview must contain at least 5 task/model/protocol nodes")
+
+    model_architecture = spec.get("model_architecture", {})
+    if isinstance(model_architecture, dict):
+        lanes = _as_list(model_architecture.get("lanes"))
+        nodes = _lane_nodes(model_architecture)
+        edges = [edge for edge in _as_list(model_architecture.get("edges")) if isinstance(edge, dict)]
+        if len(lanes) < 4:
+            failures.append(f"model_architecture must contain at least 4 lanes; found {len(lanes)}")
+        if len(nodes) < 10:
+            failures.append(f"model_architecture must contain at least 10 nodes; found {len(nodes)}")
+        if len(edges) < 12:
+            failures.append(f"model_architecture must contain at least 12 edges; found {len(edges)}")
+        edge_text = _nested_text(edges).lower()
+        if not any(term in edge_text for term in ["skip", "aux", "auxiliary", "residual"]):
+            failures.append("model_architecture must include at least one skip or auxiliary path")
+        architecture_text = _nested_text(model_architecture)
+        if not _contains_any(architecture_text, PROTOCOL_GATE_TERMS):
+            failures.append("model_architecture must include a training/evaluation/protocol gate hook")
+    else:
+        failures.append("model_architecture must be an object with lanes and edges")
+
+    module_detail = spec.get("module_detail", {})
+    if isinstance(module_detail, dict):
+        module_nodes = [node for node in _as_list(module_detail.get("nodes")) if isinstance(node, dict)]
+        module_text = _nested_text(module_detail)
+        if len(module_nodes) < 5:
+            failures.append(f"module_detail must contain at least 5 nodes; found {len(module_nodes)}")
+        if not _contains_any(module_text, ["input", "feature", "p3", "p4", "p5", "scale"]):
+            failures.append("module_detail must show input features or multi-scale inputs")
+        if not _contains_any(module_text, ["operator", "attention", "fusion", "pool", "conv", "align", "encoder", "query"]):
+            failures.append("module_detail must show core operators, attention, or fusion")
+        if not _contains_any(module_text, ["output", "head", "prediction", "score", "box", "mask"]):
+            failures.append("module_detail must show output heads")
+        if not _contains_any(module_text, ["loss", "constraint", "gate", "regular", "budget"]):
+            failures.append("module_detail must connect to a constraint, loss, or protocol gate")
+    else:
+        failures.append("module_detail must be an object with nodes and edges")
+
+    formulas = _as_list(spec.get("mechanism_formulas"))
+    if len(formulas) < 3:
+        failures.append(f"mechanism formulas must include at least 3 linked formulas; found {len(formulas)}")
+    elif not any(isinstance(item, dict) and item.get("links") for item in formulas):
+        failures.append("mechanism formulas must link formulas back to modules or protocol gates")
+
+    protocol_surfaces = _as_list(spec.get("protocol_surfaces"))
+    if len(protocol_surfaces) < 3:
+        failures.append(f"protocol_surfaces must include at least 3 surfaces; found {len(protocol_surfaces)}")
+    if not _contains_any(_nested_text(protocol_surfaces), ["gate", "manifest", "budget", "statistic", "repair", "replacement"]):
+        failures.append("protocol_surfaces must expose a manifest, budget, statistics, repair, or gate hook")
+
+    visual_panels = _as_list(spec.get("visual_evidence_panels"))
+    if len(visual_panels) < 3:
+        failures.append(f"visual_evidence_panels must include at least 3 protocol exemplars; found {len(visual_panels)}")
     return failures
 
 
@@ -299,6 +463,7 @@ def main() -> int:
     failures.extend(camera_ready_failures(tex))
 
     failures.extend(generated_figure_failures(tex))
+    failures.extend(figure_spec_failures(root, tex))
     formula_count = display_formula_count(tex)
     if formula_count < MIN_DISPLAY_FORMULAS:
         failures.append(

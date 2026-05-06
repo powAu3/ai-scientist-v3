@@ -74,6 +74,19 @@ def declared_manifests(protocol_text: str) -> list[str]:
 
 def write_csv_template(path: Path) -> None:
     if path.exists() and path.stat().st_size > 0:
+        with path.open(newline="", encoding="utf-8") as handle:
+            reader = csv.reader(handle)
+            existing_header = next(reader, [])
+            raw_rows = list(reader)
+        if existing_header == MANIFEST_SCHEMA:
+            return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=MANIFEST_SCHEMA)
+            writer.writeheader()
+            for raw_row in raw_rows:
+                row = dict(zip(existing_header, raw_row))
+                writer.writerow({name: row.get(name, "") for name in MANIFEST_SCHEMA})
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:

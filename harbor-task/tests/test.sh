@@ -22,6 +22,7 @@ LITERATURE_README="$APP_DIR/literature/README.md"
 MANUSCRIPT_EXPLANATION="$APP_DIR/manuscript_explanation.md"
 FIGURE_PROVENANCE_JSON="$APP_DIR/figures/figure_provenance.json"
 FIGURE_PROVENANCE_README="$APP_DIR/figures/README.md"
+FIGURE_SPEC="$APP_DIR/figures/figure_spec.json"
 REVIEWS_DIR="$APP_DIR/reviews"
 SUBMISSIONS_DIR="$APP_DIR/submissions"
 
@@ -133,7 +134,7 @@ paper_figure_count() {
 }
 
 paper_has_min_figures() {
-    [ "$(paper_figure_count)" -ge 5 ]
+    [ "$(paper_figure_count)" -ge 6 ]
 }
 
 paper_word_count() {
@@ -216,6 +217,13 @@ figure_file() {
     find "$APP_DIR/figures" -maxdepth 1 -type f \( -name '*.png' -o -name '*.pdf' \) -size +100c 2>/dev/null | head -1
 }
 
+visual_stack_files_valid() {
+    [ -s "$FIGURE_SPEC" ] || return 1
+    for name in system_overview.png model_architecture.png module_detail.png mechanism_formula_map.png protocol_surface_matrix.png predicted_results.png; do
+        [ -s "$APP_DIR/figures/$name" ] || return 1
+    done
+}
+
 review_json_valid() {
     python3 - "$REVIEW_JSON" <<'PY' 2>/dev/null
 import json, sys
@@ -266,6 +274,7 @@ predicted_data_valid() {
     [ -s "$PREDICTED_DATA" ] && \
         [ "$(wc -l < "$PREDICTED_DATA" 2>/dev/null || echo 0)" -ge 2 ] && \
         grep -Eiq "predicted|expected|hypothesized|assumption|rationale" "$PREDICTED_DATA" 2>/dev/null && \
+        visual_stack_files_valid && \
         [ -s "$FIGURE_PROVENANCE_JSON" ] && \
         [ -s "$FIGURE_PROVENANCE_README" ] && \
         grep -Eiq "source_kind|regeneration|planning_forecast" "$FIGURE_PROVENANCE_JSON" 2>/dev/null
@@ -317,9 +326,9 @@ fi
 
 if predicted_data_valid && [ -n "$(figure_file)" ] && paper_references_figure && paper_has_min_figures; then
     SCORE=$((SCORE + 1))
-    echo "OK: predicted data and rich figure artifacts"
+    echo "OK: predicted data and six-part visual evidence stack"
 else
-    echo "MISSING: predicted data, chart artifact, or five paper figure references"
+    echo "MISSING: predicted data, figure_spec.json, visual-stack artifacts, or six paper figure references"
 fi
 
 if [ -s "$PAPER_TEX" ] && [ -s "$PAPER_PDF" ] && paper_declares_prediction_mode && paper_has_formula && paper_has_min_formulas && paper_has_keywords; then

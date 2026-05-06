@@ -31,6 +31,7 @@
 #   GEMINI_MODEL   — Model for Gemini CLI (default: auto)
 #   FINAL_GATE_REVIEWER — 1 (default) runs a final Claude area-chair gate after reviewer aggregation
 #   GENERATE_PREDICTED_FIGURES — 1 (default) refreshes figures from predicted_results.csv
+#   STRICT_FIGURE_GATE — 1 (default) fails before review if figure generation/provenance fails
 #   GENERATE_MANIFEST_TEMPLATES — 1 (default) materializes protocol manifest schemas before review
 #   RUN_PAPER_QUALITY_AUDIT — 1 (default) runs the static manuscript/citation/data audit before review
 #   RUN_STYLE_AUDIT — 1 (default) runs a Claude manuscript style audit when available
@@ -76,6 +77,7 @@ REVIEWS_DIR="$BASE_DIR/reviews"
 RUN_STYLE_AUDIT="${RUN_STYLE_AUDIT:-1}"
 RUN_PAPER_QUALITY_AUDIT="${RUN_PAPER_QUALITY_AUDIT:-1}"
 GENERATE_PREDICTED_FIGURES="${GENERATE_PREDICTED_FIGURES:-1}"
+STRICT_FIGURE_GATE="${STRICT_FIGURE_GATE:-1}"
 GENERATE_MANIFEST_TEMPLATES="${GENERATE_MANIFEST_TEMPLATES:-1}"
 COMPILE_BEFORE_REVIEW="${COMPILE_BEFORE_REVIEW:-1}"
 PAPER_QUALITY_AUDIT_LOG="$REVIEWS_DIR/paper_quality_audit.log"
@@ -412,10 +414,18 @@ rm -f "$REVIEWS_DIR/top_tier_review.md" "$REVIEWS_DIR/figure_audit.md" \
       "$REVIEWS_DIR/manuscript_style_audit.md"
 
 if [ "$GENERATE_PREDICTED_FIGURES" = "1" ] && [ -f "$BASE_DIR/scripts/generate_predicted_figures.py" ]; then
-    python3 "$BASE_DIR/scripts/generate_predicted_figures.py" --app-dir "$BASE_DIR" >/dev/null 2>&1 || true
+    if [ "$STRICT_FIGURE_GATE" = "1" ]; then
+        python3 "$BASE_DIR/scripts/generate_predicted_figures.py" --app-dir "$BASE_DIR"
+    else
+        python3 "$BASE_DIR/scripts/generate_predicted_figures.py" --app-dir "$BASE_DIR" >/dev/null 2>&1 || true
+    fi
 fi
 if [ -f "$BASE_DIR/scripts/write_figure_provenance.py" ]; then
-    python3 "$BASE_DIR/scripts/write_figure_provenance.py" --app-dir "$BASE_DIR" >/dev/null 2>&1 || true
+    if [ "$STRICT_FIGURE_GATE" = "1" ]; then
+        python3 "$BASE_DIR/scripts/write_figure_provenance.py" --app-dir "$BASE_DIR"
+    else
+        python3 "$BASE_DIR/scripts/write_figure_provenance.py" --app-dir "$BASE_DIR" >/dev/null 2>&1 || true
+    fi
 fi
 
 if [ -f "$BASE_DIR/scripts/write_manuscript_explanation.py" ]; then

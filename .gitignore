@@ -44,7 +44,9 @@ data/
 # Experiment artifacts (when running locally without Harbor)
 experiment_codebase/
 configs/
-figures/
+figures/*
+!figures/
+!figures/figure_spec.json
 latex/
 literature/
 manifests/

@@ -28,28 +28,58 @@ def main() -> int:
     fig_dir.mkdir(parents=True, exist_ok=True)
 
     known = {
+        "system_overview.png": {
+            "source": "figures/figure_spec.json rendered by scripts/generate_predicted_figures.py",
+            "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
+            "evidence_status": "system/protocol design artifact, not measured output",
+        },
+        "model_architecture.png": {
+            "source": "figures/figure_spec.json rendered by scripts/generate_predicted_figures.py",
+            "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
+            "evidence_status": "model architecture design artifact, not measured output",
+        },
+        "module_detail.png": {
+            "source": "figures/figure_spec.json rendered by scripts/generate_predicted_figures.py",
+            "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
+            "evidence_status": "module design artifact, not measured output",
+        },
+        "mechanism_formula_map.png": {
+            "source": "figures/figure_spec.json rendered by scripts/generate_predicted_figures.py",
+            "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
+            "evidence_status": "mechanism/formula artifact, not measured output",
+        },
+        "protocol_surface_matrix.png": {
+            "source": "figures/figure_spec.json rendered by scripts/generate_predicted_figures.py",
+            "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
+            "evidence_status": "protocol surface artifact, not performance data",
+        },
+        "predicted_results.png": {
+            "source": "predicted_results/predicted_results.csv rendered by scripts/generate_predicted_figures.py",
+            "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
+            "evidence_status": "planning forecast centers and bands, not measured output",
+        },
         "crackyolo_architecture.png": {
-            "source": "deterministic protocol diagram from scripts/generate_predicted_figures.py",
+            "source": "compatibility alias for figures/model_architecture.png",
             "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
             "evidence_status": "design artifact, not measured output",
         },
         "planned_benchmark_matrix.png": {
-            "source": "deterministic benchmark coverage matrix from scripts/generate_predicted_figures.py",
+            "source": "compatibility alias for figures/protocol_surface_matrix.png",
             "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
             "evidence_status": "ordinal protocol-priority artifact, not performance data",
         },
         "predicted_yolo_crack_results.png": {
-            "source": "predicted_results/predicted_results.csv",
+            "source": "compatibility alias for figures/predicted_results.png",
             "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
             "evidence_status": "planning forecast centers, not measured output",
         },
         "crackyolo_module_detail.png": {
-            "source": "deterministic module-level diagram from scripts/generate_predicted_figures.py",
+            "source": "compatibility alias for figures/module_detail.png",
             "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
             "evidence_status": "design artifact, not measured output",
         },
         "crackyolo_mechanism_equations.png": {
-            "source": "deterministic mechanism and formula map from scripts/generate_predicted_figures.py",
+            "source": "compatibility alias for figures/mechanism_formula_map.png",
             "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
             "evidence_status": "protocol/formula artifact, not measured output",
         },
