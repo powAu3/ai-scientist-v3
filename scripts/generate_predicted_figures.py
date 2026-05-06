@@ -125,6 +125,170 @@ def draw_architecture_figure(plt, output: Path) -> None:
     plt.close(fig)
 
 
+def draw_module_detail_figure(plt, output: Path) -> None:
+    """Draw a module-level view of the proposed crack-aware fusion block."""
+    import matplotlib.patches as patches
+
+    fig, ax = plt.subplots(figsize=(9.6, 5.4), constrained_layout=True)
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 7)
+    ax.axis("off")
+
+    def box(x: float, y: float, w: float, h: float, label: str, color: str) -> None:
+        rect = patches.FancyBboxPatch(
+            (x, y),
+            w,
+            h,
+            boxstyle="round,pad=0.04,rounding_size=0.07",
+            facecolor=color,
+            edgecolor="#242424",
+            linewidth=1.0,
+        )
+        ax.add_patch(rect)
+        ax.text(x + w / 2, y + h / 2, label, ha="center", va="center", fontsize=8.5)
+
+    def arrow(x1: float, y1: float, x2: float, y2: float) -> None:
+        ax.annotate(
+            "",
+            xy=(x2, y2),
+            xytext=(x1, y1),
+            arrowprops={"arrowstyle": "->", "lw": 1.1, "color": "#242424"},
+        )
+
+    ax.text(0.25, 6.45, "Crack-Aware Fusion Module", fontsize=13, weight="bold")
+    ax.text(
+        0.25,
+        6.05,
+        "Module design to be tested in the future empirical branch; no weights are trained in this run.",
+        fontsize=8,
+        color="#555555",
+    )
+
+    for y, label in [
+        (4.9, "P3\nfine texture"),
+        (3.55, "P4\nmid scale"),
+        (2.2, "P5\ncontext"),
+    ]:
+        box(0.35, y, 1.45, 0.75, label, "#d9e8ff")
+        arrow(1.8, y + 0.38, 2.45, 3.9)
+
+    box(2.45, 3.5, 1.65, 0.85, "Shared\n1x1 align", "#eef1f5")
+    box(4.55, 4.85, 1.65, 0.85, "Horizontal\nstrip pool", "#f5ead0")
+    box(4.55, 3.55, 1.65, 0.85, "Vertical\nstrip pool", "#f5ead0")
+    box(4.55, 2.25, 1.65, 0.85, "Diagonal\nedge probe", "#f5ead0")
+    arrow(4.1, 3.92, 4.55, 5.25)
+    arrow(4.1, 3.92, 4.55, 3.98)
+    arrow(4.1, 3.92, 4.55, 2.68)
+
+    box(6.65, 3.55, 1.45, 0.85, "Elongation\ngate", "#dff2e2")
+    arrow(6.2, 5.25, 6.65, 3.98)
+    arrow(6.2, 3.98, 6.65, 3.98)
+    arrow(6.2, 2.68, 6.65, 3.98)
+
+    box(8.55, 4.45, 1.15, 0.75, "Detect\nhead", "#f5dede")
+    box(8.55, 2.75, 1.15, 0.75, "Thin\nhead", "#e4dff4")
+    arrow(8.1, 3.98, 8.55, 4.82)
+    arrow(8.1, 3.98, 8.55, 3.12)
+
+    formula = (
+        r"$G_e=\sigma(W_g[P_h,P_v,P_d]),\quad "
+        r"F_c=P_3+\sum_s G_{e,s}\odot W_sP_s$"
+    )
+    ax.text(2.25, 0.85, formula, fontsize=11)
+    ax.text(
+        2.25,
+        0.45,
+        "The equation defines the intended fusion hypothesis; it is not evidence of a trained module.",
+        fontsize=8,
+        color="#555555",
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output, dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+
+def draw_mechanism_equation_figure(plt, output: Path) -> None:
+    """Draw a compact map linking model mechanisms to planned formulas."""
+    import matplotlib.patches as patches
+
+    fig, ax = plt.subplots(figsize=(9.6, 5.4), constrained_layout=True)
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 7)
+    ax.axis("off")
+
+    ax.text(0.25, 6.45, "Mechanism and Formula Map", fontsize=13, weight="bold")
+    ax.text(
+        0.25,
+        6.05,
+        "Each formula is a planned analysis object for the future measured branch.",
+        fontsize=8,
+        color="#555555",
+    )
+
+    rows = [
+        (
+            4.9,
+            "Thin-structure supervision",
+            r"$L_{thin}=L_{dice}+\lambda_b L_{boundary}+\lambda_c L_{cont}$",
+            "continuity and boundary fidelity",
+            "#d9e8ff",
+        ),
+        (
+            3.65,
+            "Hard-negative queue",
+            r"$w_i=1+\gamma\,1[x_i\in Q_{hard}]$",
+            "shadow, sealed joint, and lane-mark confusion",
+            "#f5ead0",
+        ),
+        (
+            2.4,
+            "Forecast calibration",
+            r"$\hat m=m_{lit}+\Delta_{module}-\rho_{risk}$",
+            "conservative planning center, not a measurement",
+            "#dff2e2",
+        ),
+        (
+            1.15,
+            "Stop/go criterion",
+            r"$Go=1[\Delta_{mAP}>0.015\wedge FP/img<\tau]$",
+            "future run acceptance rule",
+            "#e4dff4",
+        ),
+    ]
+
+    for y, title, formula, note, color in rows:
+        rect = patches.FancyBboxPatch(
+            (0.45, y),
+            2.0,
+            0.78,
+            boxstyle="round,pad=0.04,rounding_size=0.07",
+            facecolor=color,
+            edgecolor="#242424",
+            linewidth=1.0,
+        )
+        ax.add_patch(rect)
+        ax.text(1.45, y + 0.39, title, ha="center", va="center", fontsize=8.5)
+        ax.annotate(
+            "",
+            xy=(3.05, y + 0.39),
+            xytext=(2.45, y + 0.39),
+            arrowprops={"arrowstyle": "->", "lw": 1.0, "color": "#242424"},
+        )
+        ax.text(3.15, y + 0.49, formula, fontsize=10.5, va="center")
+        ax.text(3.15, y + 0.15, note, fontsize=8, color="#555555", va="center")
+
+    ax.text(
+        0.45,
+        0.35,
+        "This diagram increases mathematical traceability without claiming executed losses, gradients, or benchmark measurements.",
+        fontsize=8,
+        color="#555555",
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output, dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+
 def draw_benchmark_matrix_figure(plt, output: Path) -> None:
     """Draw the deterministic benchmark coverage matrix."""
     methods = [
@@ -393,6 +557,8 @@ def main() -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=220, bbox_inches="tight")
     plt.close(fig)
+    draw_module_detail_figure(plt, root / "figures" / "crackyolo_module_detail.png")
+    draw_mechanism_equation_figure(plt, root / "figures" / "crackyolo_mechanism_equations.png")
     draw_architecture_figure(plt, root / "figures" / "crackyolo_architecture.png")
     draw_benchmark_matrix_figure(plt, root / "figures" / "planned_benchmark_matrix.png")
     print(f"Wrote {output} ({output.stat().st_size} bytes)")

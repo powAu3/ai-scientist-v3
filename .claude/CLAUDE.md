@@ -101,6 +101,13 @@ experiments.
    also have source and regeneration records. Include formal criteria or
    equations in `latex/template.tex` for the gate score, expected utility,
    crossover rule, or statistical decision plan.
+   A serious algorithm-style manuscript needs more than one generic chart:
+   include at least five generated visual artifacts when the idea is a detector
+   or model paper: an overall architecture figure, a module-level figure, a
+   mechanism/loss or equation map, a forecast/comparison chart, and a protocol or
+   benchmark matrix. Include at least four display equations covering the review
+   gate plus model-side reasoning such as crack-aware fusion, thin-structure
+   loss, hard-negative weighting, forecast calibration, or the stop/go rule.
 6. **Protocol Lock Templates** - When the repaired protocol declares
    `manifests/*.csv` files and `scripts/create_manifest_templates.py` exists,
    run `python3 scripts/create_manifest_templates.py --app-dir .`. These
@@ -130,6 +137,10 @@ experiments.
 9. **Paper Writing** - Fill `latex/template.tex`. Include related work, proposed
    methodology, review findings, predicted results, recommended experimental
    protocol, limitations, and evidence needed before making empirical claims.
+   Use `\iclrfinalcopy` for the low-compute manuscript-effect PDF so the
+   compiled artifact does not show the ICLR review line-number ruler on the left
+   margin. This branch is testing polished paper output, not an anonymous
+   submission package.
    If a visible forecast table is condensed for page fit, the body must say it is
    a selected subset of `predicted_results/predicted_results.csv`, name the
    selection rule, and point to the CSV as the authoritative full comparison
@@ -259,7 +270,11 @@ Scores are 1-5, where 5 is strongest.
   documentation/repository when YOLOv8 is used. If a model family lacks a
   peer-reviewed canonical paper, say so rather than inventing one.
 - Include at least one professional table, at least one generated figure, and at
-  least one equation that supports the review/prediction logic.
+  least four equations that support both the review logic and the proposed model
+  mechanism.
+- For detector/model papers, include at least five generated figure references:
+  architecture, module detail, mechanism/loss map, forecast/comparison chart, and
+  protocol/benchmark matrix.
 - Include a strong comparative evaluation plan. Cover same-family baselines,
   stronger detector baselines, crack-specific segmentation baselines, transformer
   detectors when appropriate, ablations, matched budgets, hard-negative sets,

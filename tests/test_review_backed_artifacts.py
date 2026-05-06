@@ -88,3 +88,41 @@ def test_audit_rejects_crack500_primary_without_protocol_declaration():
     failures = module.forecast_surface_failures(protocol, rows, fieldnames)
 
     assert any("Crack500 appears as a primary detection surface" in failure for failure in failures)
+
+
+def test_audit_requires_rich_figure_set_and_display_formulas():
+    module = load_module("audit_paper_quality", "scripts/audit_paper_quality.py")
+
+    sparse_tex = r"""
+    \begin{equation} a=b \end{equation}
+    \includegraphics{predicted_yolo_crack_results.png}
+    """
+
+    failures = module.generated_figure_failures(sparse_tex)
+
+    assert module.display_formula_count(sparse_tex) == 1
+    assert any("too few generated figures" in failure for failure in failures)
+    assert any("architecture" in failure for failure in failures)
+
+
+def test_audit_accepts_required_figure_reference_categories():
+    module = load_module("audit_paper_quality", "scripts/audit_paper_quality.py")
+
+    rich_tex = r"""
+    \includegraphics{crackyolo_architecture.png}
+    \includegraphics{crackyolo_module_detail.png}
+    \includegraphics{crackyolo_mechanism_equations.png}
+    \includegraphics{predicted_yolo_crack_results.png}
+    \includegraphics{planned_benchmark_matrix.png}
+    """
+
+    assert module.generated_figure_failures(rich_tex) == []
+
+
+def test_audit_requires_finalcopy_for_polished_pdf():
+    module = load_module("audit_paper_quality", "scripts/audit_paper_quality.py")
+
+    assert module.camera_ready_failures(r"\documentclass{article}") == [
+        "paper must enable \\iclrfinalcopy to suppress review line numbers"
+    ]
+    assert module.camera_ready_failures(r"\iclrfinalcopy") == []

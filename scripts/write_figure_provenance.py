@@ -43,6 +43,16 @@ def main() -> int:
             "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
             "evidence_status": "planning forecast centers, not measured output",
         },
+        "crackyolo_module_detail.png": {
+            "source": "deterministic module-level diagram from scripts/generate_predicted_figures.py",
+            "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
+            "evidence_status": "design artifact, not measured output",
+        },
+        "crackyolo_mechanism_equations.png": {
+            "source": "deterministic mechanism and formula map from scripts/generate_predicted_figures.py",
+            "regeneration": "python3 scripts/generate_predicted_figures.py --app-dir .",
+            "evidence_status": "protocol/formula artifact, not measured output",
+        },
     }
 
     records = []

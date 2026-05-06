@@ -55,9 +55,9 @@ TITLE HERE
 %%%%%%%%%TITLE%%%%%%%%%
 }
 
-% Authors must not appear in the submitted version. They should be hidden
-% as long as the \iclrfinalcopy macro remains commented out below.
-% Non-anonymous submissions will be rejected without review.
+% The low-compute customer branch produces manuscript-effect PDFs rather than
+% anonymous review submissions, so \iclrfinalcopy is enabled below to suppress
+% the review line-number ruler.
 
 \author{Anonymous}
 
@@ -72,7 +72,7 @@ TITLE HERE
 \newcommand{\fix}{\marginpar{FIX}}
 \newcommand{\new}{\marginpar{NEW}}
 
-%\iclrfinalcopy % Uncomment for camera-ready version, but NOT for submission.
+\iclrfinalcopy % Camera-ready manuscript-effect PDF: suppress review line numbers.
 \begin{document}
 
 

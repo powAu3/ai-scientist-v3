@@ -82,6 +82,25 @@ paper_has_formula() {
     grep -Eq '\\begin\{equation\}|\\begin\{align\}|\\\[|\\\(|\$\$' "$PAPER_TEX" 2>/dev/null
 }
 
+paper_formula_count() {
+    python3 - "$PAPER_TEX" <<'PY' 2>/dev/null
+import re, sys
+try:
+    text = open(sys.argv[1], encoding="utf-8").read()
+except Exception:
+    print(0)
+    raise SystemExit(0)
+count = len(re.findall(r"\\begin\{(?:equation|equation\*|align|align\*|gather|gather\*|multline|multline\*)\}", text))
+count += len(re.findall(r"\\\[[\s\S]*?\\\]", text))
+count += len(re.findall(r"\$\$[\s\S]*?\$\$", text))
+print(count)
+PY
+}
+
+paper_has_min_formulas() {
+    [ "$(paper_formula_count)" -ge 4 ]
+}
+
 paper_has_keywords() {
     grep -Eiq '\\keywords[[:space:]]*\{|Keywords[[:space:]]*:|Key words[[:space:]]*:' "$PAPER_TEX" 2>/dev/null
 }
@@ -107,6 +126,14 @@ PY
 
 paper_references_figure() {
     grep -Eq '\\includegraphics' "$PAPER_TEX" 2>/dev/null
+}
+
+paper_figure_count() {
+    grep -Ec '\\includegraphics' "$PAPER_TEX" 2>/dev/null || echo 0
+}
+
+paper_has_min_figures() {
+    [ "$(paper_figure_count)" -ge 5 ]
 }
 
 paper_word_count() {
@@ -288,18 +315,18 @@ else
     echo "OK: preflight repair not required by gate"
 fi
 
-if predicted_data_valid && [ -n "$(figure_file)" ] && paper_references_figure; then
+if predicted_data_valid && [ -n "$(figure_file)" ] && paper_references_figure && paper_has_min_figures; then
     SCORE=$((SCORE + 1))
-    echo "OK: predicted data and chart artifact"
+    echo "OK: predicted data and rich figure artifacts"
 else
-    echo "MISSING: predicted data, chart artifact, or paper figure reference"
+    echo "MISSING: predicted data, chart artifact, or five paper figure references"
 fi
 
-if [ -s "$PAPER_TEX" ] && [ -s "$PAPER_PDF" ] && paper_declares_prediction_mode && paper_has_formula && paper_has_keywords; then
+if [ -s "$PAPER_TEX" ] && [ -s "$PAPER_PDF" ] && paper_declares_prediction_mode && paper_has_formula && paper_has_min_formulas && paper_has_keywords; then
     SCORE=$((SCORE + 1))
-    echo "OK: paper source, compiled PDF, prediction disclosure, formula, and keywords"
+    echo "OK: paper source, compiled PDF, prediction disclosure, formulas, and keywords"
 else
-    echo "MISSING: paper source, compiled PDF, prediction disclosure, formula, or keywords"
+    echo "MISSING: paper source, compiled PDF, prediction disclosure, four formulas, or keywords"
 fi
 
 if docx_valid; then

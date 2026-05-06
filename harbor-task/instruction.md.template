@@ -182,6 +182,11 @@ professional so the PDF looks like a serious paper. Use captions, nearby text,
 CSV fields, and `manuscript_explanation.md` to make the evidence status
 unambiguous; do not clutter every visual element with a large "demo" or "fake"
 label.
+For detector/model papers, one overview plot is not enough. The manuscript must
+include at least five generated visual artifacts: an overall model architecture,
+a module-level structure diagram, a mechanism/loss or equation map, a
+forecast/comparison chart, and a protocol/benchmark matrix. The figures should
+look like algorithm-paper figures, not generic decorative boxes.
 If `scripts/generate_predicted_figures.py` exists, use it after updating the
 prediction CSV:
 
@@ -212,10 +217,12 @@ run.
 Manifest CSV headers, `manifests/README.md`, and `manifests/manifest_lock.json`
 must agree exactly on the lock schema, including `dataset_version`.
 
-Include at least one mathematical formula in the paper, such as a gate score,
-expected utility, crossover criterion, or planned statistical test. The formula
-should support the review or prediction logic rather than pretending to report
-actual measurements.
+Include at least four mathematical display formulas in the paper. At minimum,
+cover the review gate and several model/protocol mechanisms such as crack-aware
+feature fusion, thin-structure loss, hard-negative weighting, forecast
+calibration, stop/go criteria, or a planned statistical test. The formulas
+should support the proposed algorithm/protocol logic rather than pretending to
+report actual measurements.
 
 ## Required Paper Work
 
@@ -243,6 +250,11 @@ artifact stub. The main paper should look like a serious workshop submission:
 - a concise keyword line near the abstract, using ASCII translations when
   necessary for pdflatex compatibility;
 - an appendix or supplementary section when details do not fit in the main text.
+
+For the low-compute manuscript-effect PDF, use `\iclrfinalcopy` (or the
+template equivalent) so the compiled PDF suppresses the ICLR review line-number
+ruler on the left margin. The artifact should look like a polished paper, not a
+review draft with line numbers.
 
 Borrow the paper organization discipline from AI Scientist-v2, but preserve this
 repository's low-compute rule: do not run experiments and do not report predicted

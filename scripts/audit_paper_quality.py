@@ -29,6 +29,9 @@ REQUIRED_SECTIONS = [
     "Conclusion",
 ]
 
+MIN_GENERATED_FIGURES = 5
+MIN_DISPLAY_FORMULAS = 4
+
 COMPARISON_TERMS = [
     "YOLOv8",
     "YOLOv7",
@@ -101,6 +104,54 @@ def latex_words(text: str) -> int:
     text = re.sub(r"%.*", " ", text)
     text = re.sub(r"\\[a-zA-Z]+\*?(?:\[[^\]]*\])?(?:\{[^{}]*\})?", " ", text)
     return len(re.findall(r"[A-Za-z][A-Za-z0-9-]{2,}", text))
+
+
+def figure_refs(text: str) -> list[str]:
+    refs: list[str] = []
+    for match in re.finditer(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", text):
+        refs.append(match.group(1).strip())
+    return refs
+
+
+def display_formula_count(text: str) -> int:
+    env_count = len(
+        re.findall(
+            r"\\begin\{(?:equation|equation\*|align|align\*|gather|gather\*|multline|multline\*)\}",
+            text,
+        )
+    )
+    bracket_count = len(re.findall(r"\\\[[\s\S]*?\\\]", text))
+    double_dollar_count = len(re.findall(r"\$\$[\s\S]*?\$\$", text))
+    return env_count + bracket_count + double_dollar_count
+
+
+def generated_figure_failures(text: str) -> list[str]:
+    refs = figure_refs(text)
+    failures: list[str] = []
+    if len(refs) < MIN_GENERATED_FIGURES:
+        failures.append(
+            f"paper references too few generated figures: {len(refs)} "
+            f"(minimum {MIN_GENERATED_FIGURES})"
+        )
+
+    lowered_refs = " ".join(refs).lower()
+    required_signals = {
+        "architecture": ["architecture", "model"],
+        "module": ["module", "fusion", "neck"],
+        "mechanism": ["mechanism", "equation", "loss"],
+        "forecast": ["forecast", "predicted", "results"],
+        "protocol": ["matrix", "benchmark", "protocol"],
+    }
+    for name, signals in required_signals.items():
+        if not any(signal in lowered_refs for signal in signals):
+            failures.append(f"paper is missing a generated {name} figure reference")
+    return failures
+
+
+def camera_ready_failures(text: str) -> list[str]:
+    if "\\iclrfinalcopy" in text:
+        return []
+    return ["paper must enable \\iclrfinalcopy to suppress review line numbers"]
 
 
 def bib_entries(text: str) -> list[tuple[str, str]]:
@@ -245,6 +296,16 @@ def main() -> int:
     if not any(re.search(pattern, tex, re.I) for pattern in KEYWORD_PATTERNS):
         failures.append("paper is missing a keyword line near the abstract")
 
+    failures.extend(camera_ready_failures(tex))
+
+    failures.extend(generated_figure_failures(tex))
+    formula_count = display_formula_count(tex)
+    if formula_count < MIN_DISPLAY_FORMULAS:
+        failures.append(
+            f"paper has too few display formulas: {formula_count} "
+            f"(minimum {MIN_DISPLAY_FORMULAS})"
+        )
+
     comparison_count = count_present_terms(tex, COMPARISON_TERMS)
     if comparison_count < 8:
         failures.append(
@@ -313,6 +374,7 @@ def main() -> int:
         "OK: paper quality audit "
         f"(words={words}, bib_entries={len(entries)}, cited_refs={len(cite_keys)}, "
         f"comparison_terms={comparison_count}, rigor_terms={rigor_count}, "
+        f"figures={len(figure_refs(tex))}, formulas={display_formula_count(tex)}, "
         f"predicted_rows={row_count})"
     )
     return 0
